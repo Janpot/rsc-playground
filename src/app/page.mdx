@@ -1,0 +1,22 @@
+import MyDataGrid from "./MyDataGrid";
+import { sqlDataSource } from "./postgres";
+
+## My analytics
+
+### All websites:
+
+Shows a list of all my websites:
+
+export const websites = sqlDataSource("SELECT * FROM websites");
+
+<MyDataGrid data={websites} />
+
+### Website visits
+
+Shows my website's visits:
+
+export const visits = sqlDataSource(
+  "SELECT visits.id as id, * FROM visits JOIN websites ON visits.website_id = websites.id"
+);
+
+<MyDataGrid data={visits} />
