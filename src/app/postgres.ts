@@ -4,7 +4,7 @@ import { GridColDef } from "@mui/x-data-grid-pro";
 
 const pool = new Pool({
   connectionString:
-    "postgresql://jsnvylcwjkkwladwpfeweisn%40psql-mock-database-cloud:ucoatezgpbqtotwpusdojnce@psql-mock-database-cloud.postgres.database.azure.com:5432/websites1683312847864wsbmmynyneodpfde",
+    "postgres://reader:NWDMCE5xdipIjRrp@hh-pgsql-public.ebi.ac.uk:5432/pfmegrnargs",
 });
 
 export function sqlDataSource(query: string): Collection<{}> {
