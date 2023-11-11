@@ -34,6 +34,7 @@
   },
   "devDependencies": {
     "@types/invariant": "^2.2.37",
-    "@types/pg": "^8.10.9"
+    "@types/pg": "^8.10.9",
+    "remark": "^15.0.1"
   }
 }

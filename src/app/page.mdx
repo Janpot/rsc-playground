@@ -1,12 +1,9 @@
-import MyDataGrid from "./MyDataGrid";
-import { sqlDataSource } from "./postgres";
-
-## My analytics
-
-### All websites:
+# MDX + RSC + MUI example
 
 RNA dataset:
 
-export const websites = sqlDataSource("SELECT * FROM rna LIMIT 100");
+```sql rna connection:rnaCentral
+SELECT * FROM rna LIMIT 100
+```
 
-<MyDataGrid data={websites} />
+<DataGrid data={rna} />

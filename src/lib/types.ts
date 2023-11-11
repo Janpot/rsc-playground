@@ -17,11 +17,11 @@ type PaginationProps<P extends PaginationMode> = P extends "pages"
       cursor: string;
     };
 
-export type ListRowsParams<
+export type GetRowsParams<
   R extends GridValidRowModel,
   P extends PaginationMode = DefaultPaginationMode
 > = PaginationProps<P> & {
-  order: GridSortModel;
+  sortModel: GridSortModel;
 };
 
 export interface ServerGridColDef<R extends GridValidRowModel>
@@ -37,11 +37,11 @@ export interface ListRowsResult<R extends GridValidRowModel> {
   sortingMode?: "server" | "client";
 }
 
-export interface ListRows<
+export interface GetRows<
   R extends GridValidRowModel,
   P extends PaginationMode = DefaultPaginationMode
 > {
-  (params: ListRowsParams<R, P>): Promise<ListRowsResult<R>>;
+  (params: GetRowsParams<R, P>): Promise<ListRowsResult<R>>;
 }
 
 export interface CreateRowParams<R> {
@@ -69,14 +69,14 @@ export interface UpdateRow<R extends GridValidRowModel> {
   (params: UpdateRowParams<R>): Promise<void>;
 }
 
-export interface Collection<
+export interface DataSource<
   R extends GridValidRowModel,
   P extends PaginationMode = DefaultPaginationMode
 > {
   paginationMode?: P;
   columns: ServerGridColDef<R>[];
-  list: ListRows<R, P>;
-  create?: CreateRow<R>;
-  update?: UpdateRow<R>;
-  delete?: DeleteRow<R>;
+  getRows: GetRows<R, P>;
+  createRow?: CreateRow<R>;
+  updateRow?: UpdateRow<R>;
+  deleteRow?: DeleteRow<R>;
 }

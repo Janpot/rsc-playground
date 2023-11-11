@@ -1,10 +1,13 @@
-import { Container } from "./muiMaterialClient";
+import DataGrid from "../lib/DataGrid";
+import { Container } from "@mui/material";
 import HelloWorld from "./page.mdx";
 
 export default function Home() {
   return (
     <Container sx={{ pt: 5 }}>
-      <HelloWorld />
+      <div>
+        <HelloWorld components={{ DataGrid }} />
+      </div>
     </Container>
   );
 }
