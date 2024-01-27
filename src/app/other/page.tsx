@@ -7,7 +7,7 @@ invariant(process.env.DATABASE_URL, "Missing env var DATABASE_URL");
 
 const data = createPgDataSource({
   connectionString: process.env.DATABASE_URL,
-  list: `SELECT * FROM rna LIMIT 100`,
+  list: `SELECT * FROM rna`,
 });
 
 export default async function Home() {

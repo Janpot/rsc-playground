@@ -3,18 +3,15 @@
 import * as React from "react";
 import {
   DataGridPro,
-  DataGridProProps,
   GridActionsCellItem,
   GridColDef,
-  GridPaginationModel,
   GridRowId,
   GridSortModel,
   GridValidRowModel,
   GridValueGetterParams,
-  LicenseInfo,
 } from "@mui/x-data-grid-pro";
 import { Box } from "@mui/material";
-import { DataSource, GetRows, ListRowsResult } from "../types";
+import { DataSource, GetRows, ListRowsResult, PaginationModel } from "../types";
 import useSWR from "swr";
 import DeleteIcon from "@mui/icons-material/Delete";
 import invariant from "invariant";
@@ -31,8 +28,8 @@ async function callGetRows<R extends GridValidRowModel>([
   list,
   paginationModel,
   order,
-]: [GetRows<R, "pages">, GridPaginationModel, GridSortModel]) {
-  const data = await list({ sortModel: order, ...paginationModel });
+]: [GetRows<R, "pages">, PaginationModel, GridSortModel]) {
+  const data = await list({ sortModel: order, paginationModel });
   return data;
 }
 
@@ -72,13 +69,15 @@ export default function MyClientDataGrid<R extends GridValidRowModel>({
   columns: columnsProp,
 }: MyClientDataGridProps<R>) {
   const [serverSortModel, setServerSortModel] = React.useState<GridSortModel>(
-    []
+    [],
   );
 
   const [serverPaginationModel, setServerPaginationModel] = React.useState({
     pageSize: 10,
     page: 0,
   });
+
+  console.log(serverPaginationModel);
 
   const {
     data: listResult,
@@ -87,7 +86,7 @@ export default function MyClientDataGrid<R extends GridValidRowModel>({
     error,
   } = useSWR<ListRowsResult<R>>(
     [data.getRows, serverPaginationModel, serverSortModel],
-    callGetRows
+    callGetRows,
   );
 
   const listResultColumns = listResult?.columns;
@@ -116,7 +115,7 @@ export default function MyClientDataGrid<R extends GridValidRowModel>({
         }
 
         return result;
-      }
+      },
     );
 
     if (data.deleteRow) {
@@ -142,12 +141,8 @@ export default function MyClientDataGrid<R extends GridValidRowModel>({
       await data.updateRow?.({ id: newRow.id, values: newRow });
       return newRow;
     },
-    [data]
+    [data],
   );
-
-  const paginationMode: "server" | "client" =
-    listResult?.paginationMode ?? "client";
-  const sortingMode: "server" | "client" = listResult?.sortingMode ?? "client";
 
   const rows = listResult?.rows ?? [];
 
@@ -182,22 +177,14 @@ export default function MyClientDataGrid<R extends GridValidRowModel>({
               columns={columns}
               pageSizeOptions={[10, 25, 50, 100]}
               getRowId={rowIdField ? (row) => row[rowIdField] : undefined}
-              rowCount={paginationMode === "server" ? 100000 : rows.length}
+              rowCount={100000}
               pagination
-              paginationMode={paginationMode}
-              paginationModel={
-                paginationMode === "server" ? serverPaginationModel : undefined
-              }
-              onPaginationModelChange={
-                paginationMode === "server"
-                  ? setServerPaginationModel
-                  : undefined
-              }
-              sortingMode={sortingMode}
-              sortModel={sortingMode === "server" ? serverSortModel : undefined}
-              onSortModelChange={
-                sortingMode === "server" ? setServerSortModel : undefined
-              }
+              paginationMode="server"
+              paginationModel={serverPaginationModel}
+              onPaginationModelChange={setServerPaginationModel}
+              sortingMode="server"
+              sortModel={serverSortModel}
+              onSortModelChange={setServerSortModel}
               processRowUpdate={
                 data.updateRow ? handleProcessRowUpdate : undefined
               }

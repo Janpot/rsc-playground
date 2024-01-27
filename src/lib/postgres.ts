@@ -11,6 +11,8 @@ function getConnection(connectionString: string): Pool {
   return pool;
 }
 
+// FOR DEMO PURPOSES ONLY, THIS CONTAINS SQL INJECTION
+
 export function createPgDataSource({
   connectionString,
   list: listQuery,
@@ -19,12 +21,22 @@ export function createPgDataSource({
   list: string;
 }): DataSource<{}> {
   return {
+    paginationMode: "pages",
     columns: [],
-    getRows: async function list() {
+    getRows: async function list({ paginationModel, sortModel }) {
       "use server";
       const pool = getConnection(connectionString);
 
-      const { rows, fields } = await pool.query(listQuery);
+      const offset = paginationModel.page * paginationModel.pageSize;
+      const limit = paginationModel.pageSize;
+      const order =
+        sortModel.length > 0
+          ? `ORDER BY ${sortModel.map((part) => `"${part.field}" ${part.sort}`).join(", ")}`
+          : "";
+
+      const { rows, fields } = await pool.query(
+        `SELECT * FROM (${listQuery}) as user_Query OFFSET ${offset} LIMIT ${limit}`,
+      );
 
       const columns = new Map<string, ServerGridColDef<{}>>();
 

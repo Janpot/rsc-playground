@@ -1,5 +1,6 @@
 import {
   GridColDef,
+  GridPaginationModel,
   GridRowId,
   GridSortModel,
   GridValidRowModel,
@@ -7,6 +8,20 @@ import {
 
 export type PaginationMode = "pages" | "cursor";
 export type DefaultPaginationMode = "pages";
+
+interface CursorPaginationModel {
+  cursor: null | string;
+  pageSize: number;
+}
+
+interface IndexPaginationModel {
+  page: number;
+  pageSize: number;
+}
+
+export type PaginationModel<P extends PaginationMode> = P extends "cursor"
+  ? CursorPaginationModel
+  : IndexPaginationModel;
 
 type PaginationProps<P extends PaginationMode> = P extends "pages"
   ? {
@@ -19,8 +34,10 @@ type PaginationProps<P extends PaginationMode> = P extends "pages"
 
 export type GetRowsParams<
   R extends GridValidRowModel,
-  P extends PaginationMode = DefaultPaginationMode
+  P extends PaginationMode = DefaultPaginationMode,
 > = PaginationProps<P> & {
+  paginationModel: PaginationModel<P>;
+  filterModel: GridFilterModel;
   sortModel: GridSortModel;
 };
 
@@ -39,7 +56,7 @@ export interface ListRowsResult<R extends GridValidRowModel> {
 
 export interface GetRows<
   R extends GridValidRowModel,
-  P extends PaginationMode = DefaultPaginationMode
+  P extends PaginationMode = DefaultPaginationMode,
 > {
   (params: GetRowsParams<R, P>): Promise<ListRowsResult<R>>;
 }
@@ -49,7 +66,7 @@ export interface CreateRowParams<R> {
 }
 
 export interface CreateRow<R extends GridValidRowModel> {
-  (params: CreateRowParams<R>): Promise<void>;
+  (params: CreateRowParams<R>): Promise<R>;
 }
 
 export interface DeleteRowParams<R extends GridValidRowModel> {
@@ -66,12 +83,12 @@ export interface UpdateRowParams<R extends GridValidRowModel> {
 }
 
 export interface UpdateRow<R extends GridValidRowModel> {
-  (params: UpdateRowParams<R>): Promise<void>;
+  (params: UpdateRowParams<R>): Promise<R>;
 }
 
 export interface DataSource<
   R extends GridValidRowModel,
-  P extends PaginationMode = DefaultPaginationMode
+  P extends PaginationMode = DefaultPaginationMode,
 > {
   paginationMode?: P;
   columns: ServerGridColDef<R>[];
