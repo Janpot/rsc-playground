@@ -6,6 +6,7 @@ import {
   GridActionsCellItem,
   GridColDef,
   GridRowId,
+  GridRowModel,
   GridSortModel,
   GridValidRowModel,
   GridValueGetterParams,
@@ -60,12 +61,12 @@ function DeleteAction({ id }: DeleteActionProps) {
 }
 
 export interface MyClientDataGridProps<R extends GridValidRowModel> {
-  data: DataSource<R>;
+  dataSource: DataSource<R>;
   columns?: GridColDef[];
 }
 
 export default function MyClientDataGrid<R extends GridValidRowModel>({
-  data,
+  dataSource,
   columns: columnsProp,
 }: MyClientDataGridProps<R>) {
   const [serverSortModel, setServerSortModel] = React.useState<GridSortModel>(
@@ -77,15 +78,13 @@ export default function MyClientDataGrid<R extends GridValidRowModel>({
     page: 0,
   });
 
-  console.log(serverPaginationModel);
-
   const {
     data: listResult,
     isLoading,
     mutate,
     error,
   } = useSWR<ListRowsResult<R>>(
-    [data.getRows, serverPaginationModel, serverSortModel],
+    [dataSource.getRows, serverPaginationModel, serverSortModel],
     callGetRows,
   );
 
@@ -96,7 +95,7 @@ export default function MyClientDataGrid<R extends GridValidRowModel>({
       return columnsProp;
     }
 
-    const serverColumns = listResultColumns || data.columns;
+    const serverColumns = listResultColumns || dataSource.columns;
 
     const columns: GridColDef[] = serverColumns.map(
       ({ valueProp, ...column }) => {
@@ -105,7 +104,7 @@ export default function MyClientDataGrid<R extends GridValidRowModel>({
           result.valueGetter = dateValueGetter;
         }
 
-        if (column.editable && !data.updateRow) {
+        if (column.editable && !dataSource.updateRow) {
           console.warn("Grid has editable columns, but no update method");
           delete result.editable;
         }
@@ -118,7 +117,7 @@ export default function MyClientDataGrid<R extends GridValidRowModel>({
       },
     );
 
-    if (data.deleteRow) {
+    if (dataSource.deleteRow) {
       columns.push({
         field: "actions",
         type: "actions",
@@ -130,18 +129,18 @@ export default function MyClientDataGrid<R extends GridValidRowModel>({
     return columns;
   }, [
     columnsProp,
-    data.columns,
-    data.deleteRow,
-    data.updateRow,
+    dataSource.columns,
+    dataSource.deleteRow,
+    dataSource.updateRow,
     listResultColumns,
   ]);
 
   const handleProcessRowUpdate = React.useCallback(
     async (newRow: R, oldRow: R) => {
-      await data.updateRow?.({ id: newRow.id, values: newRow });
+      await dataSource.updateRow?.({ id: newRow.id, values: newRow });
       return newRow;
     },
-    [data],
+    [dataSource],
   );
 
   const rows = listResult?.rows ?? [];
@@ -150,7 +149,7 @@ export default function MyClientDataGrid<R extends GridValidRowModel>({
 
   return (
     <Box sx={{ width: "100%", height: 400, position: "relative" }}>
-      <DataContext.Provider value={data}>
+      <DataContext.Provider value={dataSource}>
         <MutateContext.Provider value={mutate}>
           {error ? (
             <Box
@@ -186,7 +185,7 @@ export default function MyClientDataGrid<R extends GridValidRowModel>({
               sortModel={serverSortModel}
               onSortModelChange={setServerSortModel}
               processRowUpdate={
-                data.updateRow ? handleProcessRowUpdate : undefined
+                dataSource.updateRow ? handleProcessRowUpdate : undefined
               }
             />
           )}

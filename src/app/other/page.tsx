@@ -5,7 +5,7 @@ import DataGrid from "@/lib/DataGrid";
 
 invariant(process.env.DATABASE_URL, "Missing env var DATABASE_URL");
 
-const data = createPgDataSource({
+const dataSource = createPgDataSource({
   connectionString: process.env.DATABASE_URL,
   list: `SELECT * FROM rna`,
 });
@@ -13,7 +13,7 @@ const data = createPgDataSource({
 export default async function Home() {
   return (
     <Container sx={{ pt: 5 }}>
-      <DataGrid data={data} />
+      <DataGrid dataSource={dataSource} />
     </Container>
   );
 }
