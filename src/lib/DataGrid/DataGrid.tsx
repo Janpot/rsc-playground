@@ -3,6 +3,7 @@
 import * as React from "react";
 import {
   DataGridPro,
+  DataGridProProps,
   GridActionsCellItem,
   GridColDef,
   GridPaginationModel,
@@ -17,10 +18,6 @@ import { DataSource, GetRows, ListRowsResult } from "../types";
 import useSWR from "swr";
 import DeleteIcon from "@mui/icons-material/Delete";
 import invariant from "invariant";
-
-LicenseInfo.setLicenseKey(
-  "f359d9c0d105599a7d83c3f8d775eca5Tz0xMjMsRT0yNTI0NjA0NDAwMDAwLFM9cHJlbWl1bSxMTT1wZXJwZXR1YWwsS1Y9Mg=="
-);
 
 function dateValueGetter({ value }: GridValueGetterParams): Date | undefined {
   if (value === null || value === undefined) {
