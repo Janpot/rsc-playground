@@ -25,15 +25,18 @@ export function createPgDataSource({
     columns: [],
     getRows: async function list({ paginationModel, sortModel }) {
       "use server";
+
+      console.log(listQuery, paginationModel);
       const pool = getConnection(connectionString);
 
-      const offset = paginationModel.page * paginationModel.pageSize;
+      const offset = paginationModel.start;
       const limit = paginationModel.pageSize;
       const order =
         sortModel.length > 0
           ? `ORDER BY ${sortModel.map((part) => `"${part.field}" ${part.sort}`).join(", ")}`
           : "";
 
+      console.log(listQuery, offset, limit);
       const { rows, fields } = await pool.query(
         `SELECT * FROM (${listQuery}) as user_Query OFFSET ${offset} LIMIT ${limit}`,
       );
@@ -57,6 +60,7 @@ export function createPgDataSource({
         rowIdField: "_index",
         paginationMode: "client",
         sortingMode: "client",
+        hasNextPage: rows.length >= paginationModel.pageSize,
       };
     },
   };

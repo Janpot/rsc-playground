@@ -15,7 +15,7 @@ interface CursorPaginationModel {
 }
 
 interface IndexPaginationModel {
-  page: number;
+  start: number;
   pageSize: number;
 }
 
@@ -23,19 +23,10 @@ export type PaginationModel<P extends PaginationMode> = P extends "cursor"
   ? CursorPaginationModel
   : IndexPaginationModel;
 
-type PaginationProps<P extends PaginationMode> = P extends "pages"
-  ? {
-      page: number;
-      pageSize: number;
-    }
-  : {
-      cursor: string;
-    };
-
 export type GetRowsParams<
   R extends GridValidRowModel,
   P extends PaginationMode = DefaultPaginationMode,
-> = PaginationProps<P> & {
+> = {
   paginationModel: PaginationModel<P>;
   filterModel: GridFilterModel;
   sortModel: GridSortModel;

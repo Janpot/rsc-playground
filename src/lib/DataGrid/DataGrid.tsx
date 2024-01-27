@@ -5,6 +5,7 @@ import {
   DataGridPro,
   GridActionsCellItem,
   GridColDef,
+  GridPaginationModel,
   GridRowId,
   GridRowModel,
   GridSortModel,
@@ -12,7 +13,13 @@ import {
   GridValueGetterParams,
 } from "@mui/x-data-grid-pro";
 import { Box } from "@mui/material";
-import { DataSource, GetRows, ListRowsResult, PaginationModel } from "../types";
+import {
+  DataSource,
+  GetRows,
+  ListRowsResult,
+  PaginationMode,
+  PaginationModel,
+} from "../types";
 import useSWR from "swr";
 import DeleteIcon from "@mui/icons-material/Delete";
 import invariant from "invariant";
@@ -29,8 +36,15 @@ async function callGetRows<R extends GridValidRowModel>([
   list,
   paginationModel,
   order,
-]: [GetRows<R, "pages">, PaginationModel, GridSortModel]) {
-  const data = await list({ sortModel: order, paginationModel });
+]: [GetRows<R, "pages">, GridPaginationModel, GridSortModel]) {
+  const data = await list({
+    sortModel: order,
+    paginationModel: {
+      pageSize: paginationModel.pageSize,
+      start: paginationModel.page * paginationModel.pageSize,
+    },
+    filterModel: {},
+  });
   return data;
 }
 
@@ -73,7 +87,7 @@ export default function MyClientDataGrid<R extends GridValidRowModel>({
     [],
   );
 
-  const [serverPaginationModel, setServerPaginationModel] = React.useState({
+  const [rawPaginationModel, setRawPaginationModel] = React.useState({
     pageSize: 10,
     page: 0,
   });
@@ -84,7 +98,7 @@ export default function MyClientDataGrid<R extends GridValidRowModel>({
     mutate,
     error,
   } = useSWR<ListRowsResult<R>>(
-    [dataSource.getRows, serverPaginationModel, serverSortModel],
+    [dataSource.getRows, rawPaginationModel, serverSortModel],
     callGetRows,
   );
 
@@ -179,8 +193,8 @@ export default function MyClientDataGrid<R extends GridValidRowModel>({
               rowCount={100000}
               pagination
               paginationMode="server"
-              paginationModel={serverPaginationModel}
-              onPaginationModelChange={setServerPaginationModel}
+              paginationModel={rawPaginationModel}
+              onPaginationModelChange={setRawPaginationModel}
               sortingMode="server"
               sortModel={serverSortModel}
               onSortModelChange={setServerSortModel}

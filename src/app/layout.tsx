@@ -1,6 +1,7 @@
 // src/app/layout.tsx
 import { Metadata } from "next/dist/lib/metadata/types/metadata-interface";
 import { MuiSetup } from "./MuiSetup";
+import Providers from "./providers";
 
 export const metadata: Metadata = {
   title: "My title",
@@ -15,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <MuiSetup>{children}</MuiSetup>
+        <Providers>
+          <MuiSetup>{children}</MuiSetup>
+        </Providers>
       </body>
     </html>
   );
