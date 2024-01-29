@@ -47,6 +47,8 @@ export default function MyPage() {
 }
 ```
 
+## Other out-of-the-box data source ideas
+
 ```tsx
 const dataSource = createFromPrisma(Prisma.myPrismaModel);
 
