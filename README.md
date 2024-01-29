@@ -29,21 +29,34 @@ data model
 ```tsx
 "use server";
 
-const dataSource = createGoogleSheetSource({
+const globalDataSource = createGoogleSheetSource({
   clientId: "...",
   clientSecret: process.env.GOOGLE_SECRET,
 });
 
 export default function MyPage() {
-  const dataModel = useDataModel(dataSource);
+  const [filterModel, setFilterModel] = React.useState();
 
-  const dateRangePickerProps = useDateRangeFilter(dataModel);
+  const localDataSource = useLocalDataSource(globalDataSource, {
+    filterModel,
+  });
+
+  const dateRangePickerProps = useDateRangeFilter({
+    field: "createdAt",
+    filterModel,
+    setFilterModel,
+  });
 
   return (
     <Container>
       <DateRangePicker {...datRangePickerProps} />
-      <DataGrid model={dataModel} />
-      <Chart model={dataModel} />
+      <DataGrid
+        dataSource={localDataSource}
+        paginationMode="client"
+        filterModel={filterModel}
+        onFilterModelChange={setFilterModel}
+      />
+      <Chart dataSource={localDataSource} />
     </Container>
   );
 }
