@@ -37,7 +37,9 @@ export default function MyPage() {
       <DateRangePicker {...datRangePickerProps} />
       <DataGrid
         dataSource={sharedDataSource}
+        // We want the full result in the datasource for the chart, but paginate it clientside
         paginationMode="client"
+        // filter that acts on the shared dataSource
         filterModel={filterModel}
         onFilterModelChange={setFilterModel}
       />
