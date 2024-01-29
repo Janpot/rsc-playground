@@ -49,6 +49,54 @@ export default function MyPage() {
 }
 ```
 
+## shared filter different datasource
+
+e.g. a serverside paginated raw results query, and a bucketed by day query to render a chart. Both filtered by the filter controls on the table, and a global date range control on the page.
+
+```tsx
+"use server";
+
+const resultsDataSource = createPostgresSource({
+  connectionString: process.env.DATABASE_URL,
+  list: "SELECT * from results",
+});
+
+const bucketedDataSource = createPostgresSource({
+  connectionString: process.env.DATABASE_URL,
+  list: "SELECT * from results GROUP BY day",
+});
+
+export default function MyPage() {
+  const [filterModel, setFilterModel] = React.useState();
+
+  const tableDataSource = useSharedDataSource(resultsDataSource, {
+    filterModel,
+  });
+
+  const chartDataSource = useSharedDataSource(bucketedDataSource, {
+    filterModel,
+  });
+
+  const dateRangePickerProps = useDateRangeFilter({
+    field: "createdAt",
+    filterModel,
+    setFilterModel,
+  });
+
+  return (
+    <Container>
+      <DateRangePicker {...datRangePickerProps} />
+      <DataGrid
+        dataSource={tableDataSource}
+        filterModel={filterModel}
+        onFilterModelChange={setFilterModel}
+      />
+      <Chart dataSource={chartDataSource} />
+    </Container>
+  );
+}
+```
+
 ## Other out-of-the-box data source ideas
 
 ```tsx
