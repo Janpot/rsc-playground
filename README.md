@@ -9,7 +9,7 @@ yarn dev
 
 ## shared state
 
-a dtaaSource is stateless, only serves as an interface that defines interaction with a backend. Many use cases require syncing the data with multiple components. e.g. a chart that renders the data from the grid, or a date range filter that is defined outside of the grid. We could create a `useLocalDataSource` to wrap an existing datasource, but which adds filter state to it.
+a dataSource is stateless, only serves as an interface that defines interaction with a backend. Many use cases require syncing the data with multiple components. e.g. a chart that renders the data from the grid, or a date range filter that is defined outside of the grid. We could create a `useSharedDataSource` to wrap an existing datasource, but which adds filter state to it.
 
 ```tsx
 "use server";
@@ -22,7 +22,7 @@ const globalDataSource = createGoogleSheetSource({
 export default function MyPage() {
   const [filterModel, setFilterModel] = React.useState();
 
-  const localDataSource = useLocalDataSource(globalDataSource, {
+  const sharedDataSource = useSharedDataSource(globalDataSource, {
     filterModel,
   });
 
@@ -36,12 +36,12 @@ export default function MyPage() {
     <Container>
       <DateRangePicker {...datRangePickerProps} />
       <DataGrid
-        dataSource={localDataSource}
+        dataSource={sharedDataSource}
         paginationMode="client"
         filterModel={filterModel}
         onFilterModelChange={setFilterModel}
       />
-      <Chart dataSource={localDataSource} />
+      <Chart dataSource={sharedDataSource} />
     </Container>
   );
 }
