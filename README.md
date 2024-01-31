@@ -130,4 +130,4 @@ const dataSource = createFromGraphql({
 
 ## Editable MDX
 
-![readme_video](editable-mdx.mov)
+![readme_video](editable-mdx.mp4)
