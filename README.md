@@ -130,4 +130,4 @@ const dataSource = createFromGraphql({
 
 ## Editable MDX
 
-![readme_video](editable-mdx.mp4)
+https://github.com/Janpot/rsc-playground/assets/2109932/f7698fba-56fb-40c9-9c25-296502c262f0
