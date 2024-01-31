@@ -127,3 +127,7 @@ const dataSource = createFromGraphql({
   `
 })
 ```
+
+## Editable MDX
+
+./editable-mdx.mov
