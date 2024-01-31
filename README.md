@@ -132,4 +132,4 @@ const dataSource = createFromGraphql({
 
 Enhance MDX with an editor that saves back to the original file
 
-https://github.com/Janpot/rsc-playground/assets/2109932/f7698fba-56fb-40c9-9c25-296502c262f0
+https://github.com/Janpot/rsc-playground/assets/2109932/8e99f669-15bb-4c8d-8ac8-849cf642715b
