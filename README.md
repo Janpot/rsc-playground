@@ -130,7 +130,4 @@ const dataSource = createFromGraphql({
 
 ## Editable MDX
 
-<figure class="video_container">
-  <iframe src="editable-mdx.mov" frameborder="0" allowfullscreen="true"> 
-</iframe>
-</figure>
+![readme_video](editable-mdx.mov)
