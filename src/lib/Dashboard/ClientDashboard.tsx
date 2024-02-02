@@ -1,20 +1,25 @@
 "use client";
 
-import { Box, Button, Paper, Toolbar } from "@mui/material";
+import { Box, Button, IconButton, Paper, Toolbar } from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import EditIcon from "@mui/icons-material/Edit";
 import React from "react";
 import ReactGridLayout, { WidthProvider } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import { DashboardConfig } from "./schema";
 
+const DRAGGABLE_HANDLE_CLASS = "react-grid-draggable-handle";
+
 export interface DashboardComponent {
   Component: React.ComponentType<any>;
 }
 
-export const GridLayout = WidthProvider(ReactGridLayout);
+const GridLayout = WidthProvider(ReactGridLayout);
 
-export const ComponentsContext = React.createContext<
-  Map<string, DashboardComponent>
->(new Map());
+const ComponentsContext = React.createContext<Map<string, DashboardComponent>>(
+  new Map(),
+);
 
 interface RenderedComponentProps {
   value: DashboardConfig["objects"][number];
@@ -33,23 +38,16 @@ function RenderedComponent({ value }: RenderedComponentProps) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          textAlign: "center",
           padding: 1,
         }}
       >
-        No component found for {value.kind}
+        No component found for &quot;{value.kind}&quot;
       </Box>
     );
   }
 
   return <componentDef.Component {...value.props} />;
-}
-
-interface ComponentMenuProps {
-  onDelete?: () => void;
-}
-
-function ComponentMenu({ onDelete }: ComponentMenuProps) {
-  return null;
 }
 
 export interface ClientDashboardProps {
@@ -147,12 +145,44 @@ export default function ClientDashboard({
           isResizable={editMode}
           isDraggable={editMode}
           isDroppable={editMode}
+          draggableHandle={`.${DRAGGABLE_HANDLE_CLASS}`}
         >
           {Object.entries(input.objects).map(([key, value]) => {
             return (
               <Paper key={key} sx={{ position: "relative" }}>
-                <ComponentMenu />
                 <RenderedComponent value={value} />
+                {editMode ? (
+                  <Box sx={{ position: "absolute", top: 0, right: 0 }}>
+                    <IconButton size="small">
+                      <EditIcon fontSize="inherit" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setInput((prev) => {
+                          return {
+                            ...prev,
+                            objects: prev.objects.filter(
+                              (_, i) => i !== Number(key),
+                            ),
+                          };
+                        });
+                      }}
+                    >
+                      <DeleteIcon fontSize="inherit" />
+                    </IconButton>
+                    <Box
+                      className={DRAGGABLE_HANDLE_CLASS}
+                      sx={{
+                        display: "inline-flex",
+                        padding: "5px",
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      <DragIndicatorIcon fontSize="small" />
+                    </Box>
+                  </Box>
+                ) : null}
               </Paper>
             );
           })}

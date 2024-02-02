@@ -13,7 +13,9 @@ export default function Home(props) {
   const isEditor = props.searchParams.edit !== undefined;
   return (
     <Container sx={{ pt: 5 }}>
-      <Dashboard file={FILE} editable />
+      <div>
+        <Dashboard file={FILE} editable />
+      </div>
     </Container>
   );
 }
