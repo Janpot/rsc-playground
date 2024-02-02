@@ -32,9 +32,9 @@ export default function DashboardBarChart(props: DashboardBarChartProps) {
         },
       ]}
     >
-      <BarPlot />
-      <LinePlot />
-      <MarkPlot />
+      <BarPlot skipAnimation />
+      <LinePlot skipAnimation />
+      <MarkPlot skipAnimation />
       <ChartsXAxis label="X axis" position="bottom" axisId="x-axis-id" />
     </ResponsiveChartContainer>
   );

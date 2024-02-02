@@ -5,7 +5,11 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import EditIcon from "@mui/icons-material/Edit";
 import React from "react";
-import ReactGridLayout, { Responsive, WidthProvider } from "react-grid-layout";
+import {
+  Responsive as ResponsiveGridLayout,
+  Layout,
+  Layouts,
+} from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import { DashboardConfig, ObjectLayouts } from "./schema";
 
@@ -14,8 +18,6 @@ const DRAGGABLE_HANDLE_CLASS = "react-grid-draggable-handle";
 export interface DashboardComponent {
   Component: React.ComponentType<any>;
 }
-
-const GridLayout = WidthProvider(Responsive);
 
 const ComponentsContext = React.createContext<Map<string, DashboardComponent>>(
   new Map(),
@@ -93,7 +95,7 @@ export default function ClientDashboard({
   }, [input, saveConfig]);
 
   const handleLayoutChange = React.useCallback(
-    (layout: ReactGridLayout.Layout[], layouts: ReactGridLayout.Layouts) => {
+    (layout: Layout[], layouts: Layouts) => {
       const layoutMaps = new Map(
         Object.entries(layouts).map(([breakpoint, layout]) => [
           breakpoint,
@@ -126,8 +128,8 @@ export default function ClientDashboard({
     [],
   );
 
-  const layouts: ReactGridLayout.Layouts = React.useMemo(() => {
-    const result: ReactGridLayout.Layouts = {};
+  const layouts: Layouts = React.useMemo(() => {
+    const result: Layouts = {};
 
     for (const [id, object] of Object.entries(input.objects)) {
       for (const [breakpoint, layout] of Object.entries(object.layouts)) {
@@ -153,9 +155,26 @@ export default function ClientDashboard({
     [],
   );
 
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [width, setWidth] = React.useState(0);
+
+  React.useLayoutEffect(() => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (rect) {
+      setWidth(rect.width);
+    }
+  }, []);
+
   return (
     <ComponentsContext.Provider value={components}>
-      <Box sx={{ position: "relative" }}>
+      <Box
+        sx={{
+          position: "relative",
+          ".react-grid-layout, .react-grid-item": {
+            transition: "unset",
+          },
+        }}
+      >
         {editable ? (
           <Toolbar>
             <Box sx={{ flex: 1 }} />
@@ -170,61 +189,64 @@ export default function ClientDashboard({
             )}
           </Toolbar>
         ) : null}
-        <GridLayout
-          className="layout"
-          layouts={layouts}
-          onBreakpointChange={handleBreakpointChange}
-          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-          cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-          onLayoutChange={handleLayoutChange}
-          isResizable={editMode}
-          isDraggable={editMode}
-          isDroppable={editMode}
-          draggableHandle={`.${DRAGGABLE_HANDLE_CLASS}`}
-          compactType={null}
-        >
-          {Object.entries(input.objects).map(([id, value]) => {
-            return (
-              <Paper key={id} sx={{ position: "relative" }}>
-                <RenderedComponent value={value} />
-                {editMode ? (
-                  <Box sx={{ position: "absolute", top: 0, right: 0 }}>
-                    <IconButton size="small">
-                      <EditIcon fontSize="inherit" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        setInput((prev) => {
-                          return {
-                            ...prev,
-                            objects: Object.fromEntries(
-                              Object.entries(prev.objects).filter(
-                                ([key]) => key !== id,
+        <Box ref={containerRef}>
+          <ResponsiveGridLayout
+            width={width}
+            className="layout"
+            layouts={layouts}
+            onBreakpointChange={handleBreakpointChange}
+            breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+            cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+            onLayoutChange={handleLayoutChange}
+            isResizable={editMode}
+            isDraggable={editMode}
+            isDroppable={editMode}
+            draggableHandle={`.${DRAGGABLE_HANDLE_CLASS}`}
+            compactType={null}
+          >
+            {Object.entries(input.objects).map(([id, value]) => {
+              return (
+                <Paper key={id} sx={{ position: "relative" }}>
+                  <RenderedComponent value={value} />
+                  {editMode ? (
+                    <Box sx={{ position: "absolute", top: 0, right: 0 }}>
+                      <IconButton size="small">
+                        <EditIcon fontSize="inherit" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          setInput((prev) => {
+                            return {
+                              ...prev,
+                              objects: Object.fromEntries(
+                                Object.entries(prev.objects).filter(
+                                  ([key]) => key !== id,
+                                ),
                               ),
-                            ),
-                          };
-                        });
-                      }}
-                    >
-                      <DeleteIcon fontSize="inherit" />
-                    </IconButton>
-                    <Box
-                      className={DRAGGABLE_HANDLE_CLASS}
-                      sx={{
-                        display: "inline-flex",
-                        padding: "5px",
-                        verticalAlign: "middle",
-                      }}
-                    >
-                      <DragIndicatorIcon fontSize="small" />
+                            };
+                          });
+                        }}
+                      >
+                        <DeleteIcon fontSize="inherit" />
+                      </IconButton>
+                      <Box
+                        className={DRAGGABLE_HANDLE_CLASS}
+                        sx={{
+                          display: "inline-flex",
+                          padding: "5px",
+                          verticalAlign: "middle",
+                        }}
+                      >
+                        <DragIndicatorIcon fontSize="small" />
+                      </Box>
                     </Box>
-                  </Box>
-                ) : null}
-              </Paper>
-            );
-          })}
-        </GridLayout>
+                  ) : null}
+                </Paper>
+              );
+            })}
+          </ResponsiveGridLayout>
+        </Box>
       </Box>
     </ComponentsContext.Provider>
   );
