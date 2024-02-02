@@ -5,7 +5,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import EditIcon from "@mui/icons-material/Edit";
 import React from "react";
-import ReactGridLayout, { WidthProvider } from "react-grid-layout";
+import ReactGridLayout, { Responsive, WidthProvider } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import { DashboardConfig } from "./schema";
 
@@ -15,7 +15,7 @@ export interface DashboardComponent {
   Component: React.ComponentType<any>;
 }
 
-const GridLayout = WidthProvider(ReactGridLayout);
+const GridLayout = WidthProvider(Responsive);
 
 const ComponentsContext = React.createContext<Map<string, DashboardComponent>>(
   new Map(),
@@ -66,14 +66,14 @@ export default function ClientDashboard({
   const [input, setInput] = React.useState(value);
 
   const handleAddChart = React.useCallback(() => {
-    const id = crypto.getRandomValues(new Uint32Array(1))[0];
+    const id = `item-${crypto.getRandomValues(new Uint32Array(1))[0]}`;
     setInput((prev) => {
       return {
         ...prev,
-        objects: [
+        objects: {
           ...prev.objects,
-          { id, kind: "BarChart", x: 0, y: 0, w: 2, h: 2 },
-        ],
+          [id]: { kind: "BarChart", layout: { x: 0, y: 0, w: 2, h: 2 } },
+        },
       };
     });
   }, []);
@@ -83,42 +83,37 @@ export default function ClientDashboard({
   }, [input, saveConfig]);
 
   const handleLayoutChange = React.useCallback(
-    (layout: ReactGridLayout.Layout[]) => {
-      const layoutMap = new Map(layout.map((item) => [Number(item.i), item]));
+    (layout: ReactGridLayout.Layout[], layouts: ReactGridLayout.Layouts) => {
       setInput((prev) => {
         return {
           ...prev,
-          objects: prev.objects.map((item, i) => {
-            const layoutItem = layoutMap.get(i);
-            if (layoutItem === undefined) {
-              return item;
-            }
-            return {
-              ...item,
-              x: layoutItem.x,
-              y: layoutItem.y,
-              w: layoutItem.w,
-              h: layoutItem.h,
-            };
-          }),
+          layouts: Object.fromEntries(
+            Object.entries(layouts).map(([breakpoint, layouts]) => {
+              return [
+                breakpoint,
+                layouts.map((item) => {
+                  const { i, w, h, x, y } = item;
+                  return { i, w, h, x, y };
+                }),
+              ];
+            }),
+          ),
         };
       });
     },
     [],
   );
 
-  const layout: ReactGridLayout.Layout[] = React.useMemo(() => {
-    return input.objects.map((item, i) => {
-      return {
-        i: String(i),
-        x: item.x,
-        y: item.y,
-        w: item.w,
-        h: item.h,
-        resizeHandles: ["se"],
-      };
-    });
-  }, [input.objects]);
+  const layouts: ReactGridLayout.Layouts = React.useMemo(() => {
+    return Object.fromEntries(
+      Object.entries(input.layouts).map(([breakpoint, layouts]) => {
+        return [
+          breakpoint,
+          layouts.map((item) => ({ ...item, resizeHandles: ["se"] })),
+        ];
+      }),
+    );
+  }, [input.layouts]);
 
   return (
     <ComponentsContext.Provider value={components}>
@@ -139,17 +134,18 @@ export default function ClientDashboard({
         ) : null}
         <GridLayout
           className="layout"
-          layout={layout}
-          cols={12}
+          layouts={layouts}
+          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+          cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
           onLayoutChange={handleLayoutChange}
           isResizable={editMode}
           isDraggable={editMode}
           isDroppable={editMode}
           draggableHandle={`.${DRAGGABLE_HANDLE_CLASS}`}
         >
-          {Object.entries(input.objects).map(([key, value]) => {
+          {Object.entries(input.objects).map(([id, value]) => {
             return (
-              <Paper key={key} sx={{ position: "relative" }}>
+              <Paper key={id} sx={{ position: "relative" }}>
                 <RenderedComponent value={value} />
                 {editMode ? (
                   <Box sx={{ position: "absolute", top: 0, right: 0 }}>
@@ -162,8 +158,10 @@ export default function ClientDashboard({
                         setInput((prev) => {
                           return {
                             ...prev,
-                            objects: prev.objects.filter(
-                              (_, i) => i !== Number(key),
+                            objects: Object.fromEntries(
+                              Object.entries(prev.objects).filter(
+                                ([key]) => key !== id,
+                              ),
                             ),
                           };
                         });
