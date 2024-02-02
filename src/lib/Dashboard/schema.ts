@@ -1,21 +1,20 @@
 import * as z from "zod";
 
-const layoutSchema = z.object({
-  i: z.string(),
-  x: z.number(),
-  y: z.number(),
-  w: z.number(),
-  h: z.number(),
-});
+const objectLayoutsSchema = z.record(
+  z.object({
+    x: z.number(),
+    y: z.number(),
+    w: z.number(),
+    h: z.number(),
+  }),
+);
 
-const layoutsSchema = z.array(layoutSchema);
-
-const responsiveLayoutSchema = z.record(layoutsSchema);
+export type ObjectLayouts = z.infer<typeof objectLayoutsSchema>;
 
 export const dashboardConfigSchema = z.object({
-  layouts: responsiveLayoutSchema,
   objects: z.record(
     z.object({
+      layouts: objectLayoutsSchema,
       kind: z.string(),
       props: z.any().optional(),
     }),

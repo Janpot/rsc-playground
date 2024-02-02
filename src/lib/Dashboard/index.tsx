@@ -9,10 +9,9 @@ async function getDashboardConfig(filePath: string): Promise<DashboardConfig> {
     const content = await fs.readFile(filePath, "utf-8");
     const json = JSON.parse(content);
     return dashboardConfigSchema.parse(json);
-  } catch (err) {
+  } catch (err: any) {
     if (err.code === "ENOENT") {
       return {
-        layouts: {},
         objects: {},
       };
     }

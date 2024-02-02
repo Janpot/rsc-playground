@@ -7,7 +7,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import React from "react";
 import ReactGridLayout, { Responsive, WidthProvider } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
-import { DashboardConfig } from "./schema";
+import { DashboardConfig, ObjectLayouts } from "./schema";
 
 const DRAGGABLE_HANDLE_CLASS = "react-grid-draggable-handle";
 
@@ -65,6 +65,11 @@ export default function ClientDashboard({
   const [editMode, setEditMode] = React.useState(false);
   const [input, setInput] = React.useState(value);
 
+  const [responsiveState, setResponsiveState] = React.useState<{
+    breakpoint: string;
+    cols: number;
+  }>();
+
   const handleAddChart = React.useCallback(() => {
     const id = `item-${crypto.getRandomValues(new Uint32Array(1))[0]}`;
     setInput((prev) => {
@@ -72,11 +77,16 @@ export default function ClientDashboard({
         ...prev,
         objects: {
           ...prev.objects,
-          [id]: { kind: "BarChart", layout: { x: 0, y: 0, w: 2, h: 2 } },
+          [id]: {
+            kind: "BarChart",
+            layouts: {
+              [responsiveState?.breakpoint ?? "lg"]: { x: 0, y: 0, w: 2, h: 2 },
+            },
+          },
         },
       };
     });
-  }, []);
+  }, [responsiveState?.breakpoint]);
 
   const handleSave = React.useCallback(async () => {
     await saveConfig?.(input);
@@ -84,18 +94,30 @@ export default function ClientDashboard({
 
   const handleLayoutChange = React.useCallback(
     (layout: ReactGridLayout.Layout[], layouts: ReactGridLayout.Layouts) => {
+      const layoutMaps = new Map(
+        Object.entries(layouts).map(([breakpoint, layout]) => [
+          breakpoint,
+          new Map(layout.map((item) => [item.i, item])),
+        ]),
+      );
       setInput((prev) => {
         return {
           ...prev,
-          layouts: Object.fromEntries(
-            Object.entries(layouts).map(([breakpoint, layouts]) => {
-              return [
-                breakpoint,
-                layouts.map((item) => {
-                  const { i, w, h, x, y } = item;
-                  return { i, w, h, x, y };
-                }),
-              ];
+          objects: Object.fromEntries(
+            Object.entries(prev.objects).map(([id, object]) => {
+              const layouts: ObjectLayouts = {};
+              for (const [breakpoint, layoutMap] of layoutMaps) {
+                const item = layoutMap.get(id);
+                if (item) {
+                  layouts[breakpoint] = {
+                    x: item.x,
+                    y: item.y,
+                    w: item.w,
+                    h: item.h,
+                  };
+                }
+              }
+              return [id, { ...object, layouts }];
             }),
           ),
         };
@@ -105,15 +127,31 @@ export default function ClientDashboard({
   );
 
   const layouts: ReactGridLayout.Layouts = React.useMemo(() => {
-    return Object.fromEntries(
-      Object.entries(input.layouts).map(([breakpoint, layouts]) => {
-        return [
-          breakpoint,
-          layouts.map((item) => ({ ...item, resizeHandles: ["se"] })),
-        ];
-      }),
-    );
-  }, [input.layouts]);
+    const result: ReactGridLayout.Layouts = {};
+
+    for (const [id, object] of Object.entries(input.objects)) {
+      for (const [breakpoint, layout] of Object.entries(object.layouts)) {
+        result[breakpoint] ??= [];
+        result[breakpoint].push({
+          i: id,
+          x: layout.x,
+          y: layout.y,
+          w: layout.w,
+          h: layout.h,
+          resizeHandles: ["se"],
+        });
+      }
+    }
+
+    return result;
+  }, [input.objects]);
+
+  const handleBreakpointChange = React.useCallback(
+    (breakpoint: string, cols: number) => {
+      setResponsiveState({ breakpoint, cols });
+    },
+    [],
+  );
 
   return (
     <ComponentsContext.Provider value={components}>
@@ -135,6 +173,7 @@ export default function ClientDashboard({
         <GridLayout
           className="layout"
           layouts={layouts}
+          onBreakpointChange={handleBreakpointChange}
           breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
           cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
           onLayoutChange={handleLayoutChange}
@@ -142,6 +181,7 @@ export default function ClientDashboard({
           isDraggable={editMode}
           isDroppable={editMode}
           draggableHandle={`.${DRAGGABLE_HANDLE_CLASS}`}
+          compactType={null}
         >
           {Object.entries(input.objects).map(([id, value]) => {
             return (
