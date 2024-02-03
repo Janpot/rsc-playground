@@ -25,6 +25,7 @@ const DEFAULT_COMPONENTS = new Map([
     {
       Component: BarChart,
       Editor: BarChartEditor,
+      initialProps: {},
     },
   ],
 ]);
