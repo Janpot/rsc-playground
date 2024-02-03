@@ -15,7 +15,9 @@ import "react-grid-layout/css/styles.css";
 import { DashboardConfig, ObjectLayouts } from "./schema";
 import { Panel, PanelGroup, PanelResizeHandle } from "./resizablePanels";
 import useResizeObserver from "use-resize-observer";
+import clsx from "clsx";
 
+const DASHBOARD_OBJECT_TOOLS_CLASS = "dashboard-object-tools";
 const DRAGGABLE_HANDLE_CLASS = "react-grid-draggable-handle";
 
 export interface EditorProps<P> {
@@ -141,8 +143,6 @@ function RenderedComponent({ value }: RenderedComponentProps) {
 
   return <componentDef.Component {...value.props} />;
 }
-
-function DashboardContent() {}
 
 export interface ClientDashboardProps {
   value: DashboardConfig;
@@ -281,10 +281,24 @@ export default function ClientDashboard({
       >
         {Object.entries(input.objects).map(([id, value]) => {
           return (
-            <Paper key={id} sx={{ position: "relative" }}>
+            <Paper
+              key={id}
+              sx={{
+                position: "relative",
+                [`.${DASHBOARD_OBJECT_TOOLS_CLASS}`]: {
+                  display: "none",
+                },
+                [`&:hover .${DASHBOARD_OBJECT_TOOLS_CLASS}`]: {
+                  display: "block",
+                },
+              }}
+            >
               <RenderedComponent value={value} />
               {editMode ? (
-                <Box sx={{ position: "absolute", top: 0, right: 0 }}>
+                <Box
+                  className={DASHBOARD_OBJECT_TOOLS_CLASS}
+                  sx={{ position: "absolute", top: 0, right: 0 }}
+                >
                   <IconButton
                     size="small"
                     onClick={() => setEditedObject(id)}
