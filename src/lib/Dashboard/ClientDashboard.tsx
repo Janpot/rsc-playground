@@ -13,9 +13,7 @@ import {
 } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import { DashboardConfig, ObjectLayouts } from "./schema";
-import { Panel, PanelGroup, PanelResizeHandle } from "./resizablePanels";
 import useResizeObserver from "use-resize-observer";
-import clsx from "clsx";
 
 const DASHBOARD_OBJECT_TOOLS_CLASS = "dashboard-object-tools";
 const DRAGGABLE_HANDLE_CLASS = "react-grid-draggable-handle";
@@ -360,26 +358,30 @@ export default function ClientDashboard({
                   <Button onClick={() => setEditMode(true)}>Edit</Button>
                 )}
               </Toolbar>
-              <PanelGroup direction="horizontal">
-                <Panel
-                  id="dashboard-content"
-                  order={1}
-                  style={{ overflow: "auto" }}
-                >
-                  <Box sx={{ width: rootWidth }}>{dashboardContent}</Box>
-                </Panel>
+
+              <Box sx={{ position: "relative" }}>
+                {dashboardContent}
+
                 {editedObject ? (
-                  <>
-                    <PanelResizeHandle />
-                    <Panel defaultSize={20} id="component-editor" order={2}>
-                      <ComponentEditor
-                        id={editedObject}
-                        onClose={() => setEditedObject(null)}
-                      />
-                    </Panel>
-                  </>
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: 0,
+                      bottom: 0,
+                      right: 0,
+                      width: 300,
+                      backgroundColor: "background.paper",
+                      borderLeft: 1,
+                      borderColor: "divider",
+                    }}
+                  >
+                    <ComponentEditor
+                      id={editedObject}
+                      onClose={() => setEditedObject(null)}
+                    />
+                  </Box>
                 ) : null}
-              </PanelGroup>
+              </Box>
             </Box>
           ) : (
             dashboardContent

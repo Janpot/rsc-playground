@@ -23,19 +23,25 @@
       },
       "kind": "BarChart",
       "props": {
-        "title": "I'm a title"
+        "title": "I'm a ti"
       }
     },
     "item-2300322933": {
-      "kind": "BarChart",
       "layouts": {
         "md": {
           "x": 7,
           "y": 0,
           "w": 2,
           "h": 2
+        },
+        "xxs": {
+          "x": 0,
+          "y": 1,
+          "w": 1,
+          "h": 1
         }
-      }
+      },
+      "kind": "BarChart"
     }
   }
 }
