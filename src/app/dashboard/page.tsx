@@ -1,4 +1,4 @@
-import { Container } from "@mui/material";
+import { Box, Container } from "@mui/material";
 import * as path from "path";
 import * as url from "url";
 import { Dashboard } from "../../lib/Dashboard";
@@ -11,10 +11,8 @@ const FILE = path.resolve(currentDir, "./myDashboard.json");
 export default function Home(props: { searchParams: any }) {
   const isEditor = props.searchParams.edit !== undefined;
   return (
-    <Container sx={{ pt: 5 }}>
-      <div>
-        <Dashboard file={FILE} editable />
-      </div>
-    </Container>
+    <Box sx={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0 }}>
+      <Dashboard file={FILE} editable />
+    </Box>
   );
 }

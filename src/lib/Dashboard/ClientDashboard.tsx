@@ -4,7 +4,6 @@ import { Box, Button, IconButton, Paper, Toolbar } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import EditIcon from "@mui/icons-material/Edit";
-import CloseIcon from "@mui/icons-material/Close";
 import React from "react";
 import {
   Responsive as ResponsiveGridLayout,
@@ -89,26 +88,33 @@ function ComponentEditor({ id, onClose }: ComponentEditorProps) {
   }
 
   return (
-    <Box>
-      <IconButton
-        aria-label="close"
-        onClick={onClose}
-        sx={{
-          color: (theme) => theme.palette.grey[500],
-        }}
-      >
-        <CloseIcon />
-      </IconButton>
-      <RenderedComponentEditor
-        value={object}
-        onChange={(newObject) =>
-          setDashboard((prev) => ({
-            ...prev,
-            objects: { ...prev.objects, [id]: newObject },
-          }))
-        }
-        component={componentDef}
-      />
+    <Box
+      sx={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      <Toolbar variant="dense">
+        <Box sx={{ flex: 1 }} />
+
+        <Button onClick={onClose}>Apply</Button>
+        <Button onClick={onClose}>Discard</Button>
+      </Toolbar>
+
+      <Box sx={{ flex: 1, minHeight: 0 }}>
+        <RenderedComponentEditor
+          value={object}
+          onChange={(newObject) =>
+            setDashboard((prev) => ({
+              ...prev,
+              objects: { ...prev.objects, [id]: newObject },
+            }))
+          }
+          component={componentDef}
+        />
+      </Box>
     </Box>
   );
 }
@@ -123,7 +129,7 @@ function RenderedComponent({ value }: RenderedComponentProps) {
 
   if (!componentDef) {
     return (
-      <Box
+      <Paper
         sx={{
           width: "100%",
           height: "100%",
@@ -135,7 +141,7 @@ function RenderedComponent({ value }: RenderedComponentProps) {
         }}
       >
         No component found for &quot;{value.kind}&quot;
-      </Box>
+      </Paper>
     );
   }
 
@@ -170,7 +176,7 @@ export default function ClientDashboard({
         objects: {
           ...prev.objects,
           [id]: {
-            kind: "BarChart",
+            kind: "Chart",
             layouts: {
               [responsiveState?.breakpoint ?? "lg"]: { x: 0, y: 0, w: 2, h: 2 },
             },
@@ -264,79 +270,81 @@ export default function ClientDashboard({
         },
       }}
     >
-      <ResponsiveGridLayout
-        width={dashboardWidth}
-        className="layout"
-        layouts={layouts}
-        onBreakpointChange={handleBreakpointChange}
-        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-        cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-        onLayoutChange={handleLayoutChange}
-        isResizable={editMode}
-        isDraggable={editMode}
-        isDroppable={editMode}
-        draggableHandle={`.${DRAGGABLE_HANDLE_CLASS}`}
-      >
-        {Object.entries(input.objects).map(([id, value]) => {
-          return (
-            <Paper
-              key={id}
-              sx={{
-                position: "relative",
-                [`.${DASHBOARD_OBJECT_TOOLS_CLASS}`]: {
-                  display: "none",
-                },
-                [`&:hover .${DASHBOARD_OBJECT_TOOLS_CLASS}`]: {
-                  display: "block",
-                },
-              }}
-            >
-              <RenderedComponent value={value} />
-              {editMode ? (
-                <Box
-                  className={DASHBOARD_OBJECT_TOOLS_CLASS}
-                  sx={{ position: "absolute", top: 0, right: 0 }}
-                >
-                  <IconButton
-                    size="small"
-                    onClick={() => setEditedObject(id)}
-                    disabled={editedObject === id}
-                  >
-                    <EditIcon fontSize="inherit" />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    onClick={() => {
-                      setInput((prev) => {
-                        return {
-                          ...prev,
-                          objects: Object.fromEntries(
-                            Object.entries(prev.objects).filter(
-                              ([key]) => key !== id,
-                            ),
-                          ),
-                        };
-                      });
-                    }}
-                  >
-                    <DeleteIcon fontSize="inherit" />
-                  </IconButton>
+      {dashboardWidth ? (
+        <ResponsiveGridLayout
+          width={dashboardWidth}
+          className="layout"
+          layouts={layouts}
+          onBreakpointChange={handleBreakpointChange}
+          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+          cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+          onLayoutChange={handleLayoutChange}
+          isResizable={editMode}
+          isDraggable={editMode}
+          isDroppable={editMode}
+          draggableHandle={`.${DRAGGABLE_HANDLE_CLASS}`}
+        >
+          {Object.entries(input.objects).map(([id, value]) => {
+            return (
+              <Box
+                key={id}
+                sx={{
+                  position: "relative",
+                  [`.${DASHBOARD_OBJECT_TOOLS_CLASS}`]: {
+                    display: "none",
+                  },
+                  [`&:hover .${DASHBOARD_OBJECT_TOOLS_CLASS}`]: {
+                    display: "block",
+                  },
+                }}
+              >
+                <RenderedComponent value={value} />
+                {editMode ? (
                   <Box
-                    className={DRAGGABLE_HANDLE_CLASS}
-                    sx={{
-                      display: "inline-flex",
-                      padding: "5px",
-                      verticalAlign: "middle",
-                    }}
+                    className={DASHBOARD_OBJECT_TOOLS_CLASS}
+                    sx={{ position: "absolute", top: 0, right: 0 }}
                   >
-                    <DragIndicatorIcon fontSize="small" />
+                    <IconButton
+                      size="small"
+                      onClick={() => setEditedObject(id)}
+                      disabled={editedObject === id}
+                    >
+                      <EditIcon fontSize="inherit" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setInput((prev) => {
+                          return {
+                            ...prev,
+                            objects: Object.fromEntries(
+                              Object.entries(prev.objects).filter(
+                                ([key]) => key !== id,
+                              ),
+                            ),
+                          };
+                        });
+                      }}
+                    >
+                      <DeleteIcon fontSize="inherit" />
+                    </IconButton>
+                    <Box
+                      className={DRAGGABLE_HANDLE_CLASS}
+                      sx={{
+                        display: "inline-flex",
+                        padding: "5px",
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      <DragIndicatorIcon fontSize="small" />
+                    </Box>
                   </Box>
-                </Box>
-              ) : null}
-            </Paper>
-          );
-        })}
-      </ResponsiveGridLayout>
+                ) : null}
+              </Box>
+            );
+          })}
+        </ResponsiveGridLayout>
+      ) : null}
     </Box>
   );
 
@@ -345,42 +353,47 @@ export default function ClientDashboard({
       <SetDashboardConfigContext.Provider value={setInput}>
         <ComponentsContext.Provider value={components}>
           {editable ? (
-            <Box ref={rootRef}>
-              <Toolbar>
-                <Box sx={{ flex: 1 }} />
-                {editMode ? (
-                  <>
-                    <Button onClick={handleAddChart}>Add Chart</Button>
-                    <Button onClick={handleSave}>Save</Button>
-                    <Button onClick={() => setEditMode(false)}>Close</Button>
-                  </>
-                ) : (
-                  <Button onClick={() => setEditMode(true)}>Edit</Button>
-                )}
-              </Toolbar>
-
-              <Box sx={{ position: "relative" }}>
-                {dashboardContent}
-
+            <Box
+              ref={rootRef}
+              sx={{
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <Box
+                sx={{
+                  flex: 1,
+                  minHeight: 0,
+                  position: "relative",
+                  overflow: "auto",
+                }}
+              >
                 {editedObject ? (
-                  <Box
-                    sx={{
-                      position: "absolute",
-                      top: 0,
-                      bottom: 0,
-                      right: 0,
-                      width: 300,
-                      backgroundColor: "background.paper",
-                      borderLeft: 1,
-                      borderColor: "divider",
-                    }}
-                  >
-                    <ComponentEditor
-                      id={editedObject}
-                      onClose={() => setEditedObject(null)}
-                    />
-                  </Box>
-                ) : null}
+                  <ComponentEditor
+                    id={editedObject}
+                    onClose={() => setEditedObject(null)}
+                  />
+                ) : (
+                  <>
+                    <Toolbar variant="dense">
+                      <Box sx={{ flex: 1 }} />
+                      {editMode ? (
+                        <>
+                          <Button onClick={handleAddChart}>Add Chart</Button>
+                          <Button onClick={handleSave}>Save</Button>
+                          <Button onClick={() => setEditMode(false)}>
+                            Close
+                          </Button>
+                        </>
+                      ) : (
+                        <Button onClick={() => setEditMode(true)}>Edit</Button>
+                      )}
+                    </Toolbar>
+                    {dashboardContent}
+                  </>
+                )}
               </Box>
             </Box>
           ) : (

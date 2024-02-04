@@ -2,7 +2,7 @@ import * as React from "react";
 import * as fs from "fs/promises";
 import ClientDashboard, { DashboardComponent } from "./ClientDashboard";
 import { DashboardConfig, dashboardConfigSchema } from "./schema";
-import BarChart, { Editor as BarChartEditor } from "./BarChart";
+import Chart, { Editor as ChartEditor } from "./Chart";
 
 async function getDashboardConfig(filePath: string): Promise<DashboardConfig> {
   try {
@@ -21,10 +21,10 @@ async function getDashboardConfig(filePath: string): Promise<DashboardConfig> {
 
 const DEFAULT_COMPONENTS = new Map([
   [
-    "BarChart",
+    "Chart",
     {
-      Component: BarChart,
-      Editor: BarChartEditor,
+      Component: Chart,
+      Editor: ChartEditor,
       initialProps: {},
     },
   ],
