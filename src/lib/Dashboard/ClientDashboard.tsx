@@ -13,20 +13,10 @@ import {
 import "react-grid-layout/css/styles.css";
 import { DashboardConfig, ObjectLayouts } from "./schema";
 import useResizeObserver from "use-resize-observer";
+import { DashboardComponent } from "./components";
 
 const DASHBOARD_OBJECT_TOOLS_CLASS = "dashboard-object-tools";
 const DRAGGABLE_HANDLE_CLASS = "react-grid-draggable-handle";
-
-export interface EditorProps<P> {
-  value: P;
-  onChange: (value: P) => void;
-}
-
-export interface DashboardComponent<P = {}> {
-  Component: React.ComponentType<P>;
-  Editor: React.ComponentType<EditorProps<P>>;
-  initialProps: P;
-}
 
 const ComponentsContext = React.createContext<Map<string, DashboardComponent>>(
   new Map(),
@@ -168,7 +158,7 @@ export default function ClientDashboard({
     cols: number;
   }>();
 
-  const handleAddChart = React.useCallback(() => {
+  const handleAddComponent = (kind: string) => () => {
     const id = `item-${crypto.getRandomValues(new Uint32Array(1))[0]}`;
     setInput((prev) => {
       return {
@@ -176,7 +166,7 @@ export default function ClientDashboard({
         objects: {
           ...prev.objects,
           [id]: {
-            kind: "Chart",
+            kind,
             layouts: {
               [responsiveState?.breakpoint ?? "lg"]: { x: 0, y: 0, w: 2, h: 2 },
             },
@@ -184,7 +174,7 @@ export default function ClientDashboard({
         },
       };
     });
-  }, [responsiveState?.breakpoint]);
+  };
 
   const handleSave = React.useCallback(async () => {
     await saveConfig?.(input);
@@ -381,7 +371,12 @@ export default function ClientDashboard({
                       <Box sx={{ flex: 1 }} />
                       {editMode ? (
                         <>
-                          <Button onClick={handleAddChart}>Add Chart</Button>
+                          <Button onClick={handleAddComponent("Chart")}>
+                            Add Chart
+                          </Button>
+                          <Button onClick={handleAddComponent("DataGrid")}>
+                            Add DataGrid
+                          </Button>
                           <Button onClick={handleSave}>Save</Button>
                           <Button onClick={() => setEditMode(false)}>
                             Close

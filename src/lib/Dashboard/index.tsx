@@ -1,8 +1,8 @@
 import * as React from "react";
 import * as fs from "fs/promises";
-import ClientDashboard, { DashboardComponent } from "./ClientDashboard";
+import ClientDashboard from "./ClientDashboard";
 import { DashboardConfig, dashboardConfigSchema } from "./schema";
-import Chart, { Editor as ChartEditor } from "./Chart";
+import DEFAULT_COMPONENTS, { DashboardComponent } from "./components";
 
 async function getDashboardConfig(filePath: string): Promise<DashboardConfig> {
   try {
@@ -18,17 +18,6 @@ async function getDashboardConfig(filePath: string): Promise<DashboardConfig> {
     throw err;
   }
 }
-
-const DEFAULT_COMPONENTS = new Map([
-  [
-    "Chart",
-    {
-      Component: Chart,
-      Editor: ChartEditor,
-      initialProps: {},
-    },
-  ],
-]);
 
 export interface DashboardProps {
   file: string;

@@ -9,15 +9,15 @@ import {
   MarkPlot,
 } from "@mui/x-charts";
 import * as React from "react";
-import { Panel, PanelGroup, PanelResizeHandle } from "../resizablePanels";
+import { Panel, PanelGroup, PanelResizeHandle } from "../../resizablePanels";
 
 interface ChartData {
   values: Record<string, unknown>[];
 }
 
 interface DashboardChartProps {
-  title: string;
-  data: ChartData[];
+  title?: string;
+  data?: ChartData[];
 }
 
 export default function DashboardChart({ title }: DashboardChartProps) {
