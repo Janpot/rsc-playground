@@ -1,24 +1,9 @@
-"use client";
-
-import {
-  Box,
-  Paper,
-  Stack,
-  SxProps,
-  TextField,
-  Typography,
-} from "@mui/material";
-import {
-  ResponsiveChartContainer,
-  BarPlot,
-  ChartsXAxis,
-  LinePlot,
-  MarkPlot,
-} from "@mui/x-charts";
+import { Box, Stack, SxProps, TextField } from "@mui/material";
 import * as React from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "../../resizablePanels";
-import { title } from "process";
-import type { GenerateContext } from "../../ClientDashboard";
+import { useRunner } from "react-runner";
+import { IMPORTS, ModuleContext, createModuleContext } from "../../codegen";
+import { generateCode } from "./codegen";
 
 interface DataSource {
   kind: "rest";
@@ -27,7 +12,7 @@ interface DataSource {
   headers?: { name: string; value: string }[];
 }
 
-interface DashboardChartProps {
+export interface DashboardChartProps {
   title?: string;
   data?: DataSource;
 }
@@ -57,116 +42,6 @@ function DataSourceEditor({ sx, value, onChange }: DataSourceEditorProps) {
   );
 }
 
-export default function DashboardChart({ title }: DashboardChartProps) {
-  return (
-    <Paper
-      sx={{
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      <Typography sx={{ mx: 2, my: 1 }}>{title}</Typography>
-      <ResponsiveChartContainer
-        series={[
-          {
-            type: "bar",
-            data: [1, 2, 3, 2, 1],
-          },
-          {
-            type: "line",
-            data: [4, 3, 1, 3, 4],
-            id: "line-1",
-          },
-          {
-            type: "line",
-            data: [4, 6, 1, 3, 4],
-            id: "line-2",
-          },
-        ]}
-        xAxis={[
-          {
-            data: ["A", "B", "C", "D", "E"],
-            scaleType: "band",
-            id: "x-axis-id",
-          },
-        ]}
-      >
-        <BarPlot skipAnimation />
-        <LinePlot skipAnimation id="line-2" />
-        <LinePlot id="line-1" />
-        <MarkPlot skipAnimation />
-        <ChartsXAxis label="X axis" position="bottom" axisId="x-axis-id" />
-      </ResponsiveChartContainer>
-    </Paper>
-  );
-}
-
-export function generateCode(
-  name: string,
-  props: DashboardChartProps,
-  ctx: GenerateContext,
-): string {
-  ctx.useImport("@mui/material/Paper", { default: "Paper" });
-  ctx.useImport("@mui/material/Typography", { default: "Typography" });
-  ctx.useImport("@mui/x-charts", {
-    ResponsiveChartContainer: "ResponsiveChartContainer",
-    BarPlot: "BarPlot",
-    LinePlot: "LinePlot",
-    MarkPlot: "MarkPlot",
-    ChartsXAxis: "ChartsXAxis",
-  });
-  return `
-  function ${name} () {
-    return (
-      <Paper
-        sx={{
-          width: "100%",
-          minHeight: 300,
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <Typography sx={{ mx: 2, my: 1 }}>${props.title ?? "(untitled)"}</Typography>
-        <ResponsiveChartContainer
-          series={[
-            {
-              type: "bar",
-              data: [1, 2, 3, 2, 1],
-            },
-            {
-              type: "line",
-              data: [4, 3, 1, 3, 4],
-              id: "line-1",
-            },
-            {
-              type: "line",
-              data: [4, 6, 1, 3, 4],
-              id: "line-2",
-            },
-          ]}
-          xAxis={[
-            {
-              data: ["A", "B", "C", "D", "E"],
-              scaleType: "band",
-              id: "x-axis-id",
-            },
-          ]}
-        >
-          <BarPlot skipAnimation />
-          <LinePlot skipAnimation id="line-2" />
-          <LinePlot id="line-1" />
-          <MarkPlot skipAnimation />
-          <ChartsXAxis label="X axis" position="bottom" axisId="x-axis-id" />
-        </ResponsiveChartContainer>
-      </Paper>
-    );
-  }
-`;
-}
-
 const DEFAULT_DATASOURCE: DataSource = { kind: "rest" };
 
 interface EditorProps {
@@ -179,6 +54,24 @@ export function Editor({ value, onChange }: EditorProps) {
   React.useEffect(() => {
     setInput(value);
   }, [value]);
+  const code = React.useMemo(() => {
+    const ctx = createModuleContext();
+
+    const chartCode = generateCode("DashboardChart", input, ctx);
+    return `
+    ${ctx.renderImports()}
+
+    ${chartCode}
+    
+    export default DashboardChart;`;
+  }, [input]);
+
+  const scope = React.useMemo(() => ({ import: IMPORTS }), []);
+
+  const { element } = useRunner({
+    code,
+    scope,
+  });
 
   return (
     <Box sx={{ width: "100%", height: "100%" }}>
@@ -186,9 +79,7 @@ export function Editor({ value, onChange }: EditorProps) {
         <Panel>
           <PanelGroup direction="vertical">
             <Panel>
-              <Box sx={{ width: "100%", height: "100%", p: 2 }}>
-                <DashboardChart {...input} />
-              </Box>
+              <Box sx={{ width: "100%", height: "100%", p: 2 }}>{element}</Box>
             </Panel>
             <PanelResizeHandle />
             <Panel defaultSize={30}>

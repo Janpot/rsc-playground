@@ -15,6 +15,8 @@ import Stack from "@mui/material/Stack";
 import * as xCharts from "@mui/x-charts";
 import * as xDataGridPro from "@mui/x-data-grid-pro";
 import AddIcon from "@mui/icons-material/Add";
+import invariant from "invariant";
+import { IMPORTS, ModuleContext, createModuleContext } from "./codegen";
 
 const DASHBOARD_OBJECT_TOOLS_CLASS = "dashboard-object-tools";
 
@@ -111,12 +113,12 @@ function ComponentEditor({ id, onClose }: ComponentEditorProps) {
 
 export interface GenerateContext {
   editMode: boolean;
-  useImport: (specifier: string, names: Record<string, string>) => void;
+  module: ModuleContext;
 }
 
 function generateDashboardCode(config: DashboardConfig, ctx: GenerateContext) {
-  ctx.useImport("@mui/material/Box", { default: "Box" });
-  ctx.useImport("@mui/material/Stack", { default: "Stack" });
+  ctx.module.requireImport("@mui/material/Box", { default: "Box" });
+  ctx.module.requireImport("@mui/material/Stack", { default: "Stack" });
 
   return `
     export default function MyDashboard() {
@@ -124,7 +126,9 @@ function generateDashboardCode(config: DashboardConfig, ctx: GenerateContext) {
         <Stack sx={{ p:4 }} spacing={4}>
       ${config.layout.rows
         .map((row, rowIndex) => {
-          ctx.useImport("@mui/material/Unstable_Grid2", { default: "Grid" });
+          ctx.module.requireImport("@mui/material/Unstable_Grid2", {
+            default: "Grid",
+          });
           let rowContent: string;
           if (row.items.length <= 0) {
             return "{__runtime.renderEmptyRowContent()}";
@@ -152,22 +156,9 @@ function generateDashboardCode(config: DashboardConfig, ctx: GenerateContext) {
   `;
 }
 
-const globalScope = {
-  import: {
-    "@mui/material/Unstable_Grid2": Grid,
-    "@mui/material/Box": Box,
-    "@mui/material/Stack": Stack,
-    "@mui/material/Paper": Paper,
-    "@mui/material/Typography": Typography,
-    "@mui/x-charts": xCharts,
-    "@mui/x-data-grid-pro": xDataGridPro,
-  },
-};
-
 function getItemId() {
   return `item_${crypto.getRandomValues(new Uint32Array(1))[0]}`;
 }
-
 export interface ClientDashboardProps {
   value: DashboardConfig;
   saveConfig?: (value: DashboardConfig) => void;
@@ -210,6 +201,11 @@ export default function ClientDashboard({
       }
     };
 
+    const ctx = {
+      editMode,
+      module: createModuleContext(),
+    };
+
     console.log(input);
 
     const componentsCode = Array.from(
@@ -224,24 +220,15 @@ export default function ClientDashboard({
         return component.generateCode(
           name,
           object.props ?? component.initialProps,
-          { editMode, useImport: requireImport },
+          ctx.module,
         );
       },
     ).join("\n\n");
 
-    const code = generateDashboardCode(input, {
-      editMode,
-      useImport: requireImport,
-    });
+    const code = generateDashboardCode(input, ctx);
 
     return `
-      ${Array.from(
-        imports.entries(),
-        ([specifier, names]) =>
-          `import {${Object.entries(names)
-            .map(([name, specifier]) => `${name} as ${specifier}`)
-            .join(", ")}} from "${specifier}";`,
-      ).join("\n")}
+      ${ctx.module.renderImports()}
 
       ${componentsCode}
 
@@ -251,6 +238,7 @@ export default function ClientDashboard({
 
   const scope = React.useMemo(() => {
     return {
+      import: IMPORTS,
       __runtime: {
         renderAddRow: () => {
           return (
@@ -371,7 +359,6 @@ export default function ClientDashboard({
           );
         },
       },
-      ...globalScope,
     };
   }, [editedObject]);
 

@@ -12,6 +12,7 @@ async function getDashboardConfig(filePath: string): Promise<DashboardConfig> {
   } catch (err: any) {
     if (err.code === "ENOENT") {
       return {
+        layout: { rows: [] },
         objects: {},
       };
     }

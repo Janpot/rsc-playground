@@ -1,12 +1,10 @@
-import type { GenerateContext } from "../ClientDashboard";
-import Chart, {
-  Editor as ChartEditor,
-  generateCode as generateChartCode,
-} from "./Chart";
-import DataGrid, {
-  Editor as DataGridEditor,
-  generateCode as generateDataGridCode,
-} from "./DataGrid";
+"use client";
+
+import { ModuleContext } from "../codegen";
+import { Editor as ChartEditor } from "./Chart";
+import { generateCode as generateChartCode } from "./Chart/codegen";
+import { Editor as DataGridEditor } from "./DataGrid";
+import { generateCode as generateDataGridCode } from "./DataGrid/codegen";
 
 export interface EditorProps<P> {
   value: P;
@@ -14,17 +12,15 @@ export interface EditorProps<P> {
 }
 
 export interface DashboardComponent<P = {}> {
-  Component: React.ComponentType<P>;
   Editor: React.ComponentType<EditorProps<P>>;
   initialProps: P;
-  generateCode?: (name: string, props: P, ctx: GenerateContext) => string;
+  generateCode?: (name: string, props: P, ctx: ModuleContext) => string;
 }
 
 const components = new Map<string, DashboardComponent>([
   [
     "Chart",
     {
-      Component: Chart,
       Editor: ChartEditor,
       initialProps: {},
       generateCode: generateChartCode,
@@ -33,7 +29,6 @@ const components = new Map<string, DashboardComponent>([
   [
     "DataGrid",
     {
-      Component: DataGrid,
       Editor: DataGridEditor,
       initialProps: {},
       generateCode: generateDataGridCode,
