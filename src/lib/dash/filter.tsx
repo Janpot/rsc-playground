@@ -1,6 +1,7 @@
 import "client-only";
 import * as React from "react";
 import { useNavigate, useSearchParams } from "./navigation";
+import invariant from "invariant";
 
 export interface FilterOption {
   field: string;
@@ -31,16 +32,25 @@ function getParamName({
   return `${field}[${operator}]`;
 }
 
-export function useFilter(fieldDefs: FilterFieldDef[]): DashboardFilter {
+export const FilterContext = React.createContext<DashboardFilter | undefined>(
+  undefined,
+);
+
+export interface FilterProviderProps {
+  fields: FilterFieldDef[];
+  children?: React.ReactNode;
+}
+
+export function FilterProvider({ fields, children }: FilterProviderProps) {
   const searchParamMap = React.useMemo(
     () =>
       new Map(
-        fieldDefs.map((fieldDef) => {
+        fields.map((fieldDef) => {
           const withDefaults = { operator: "eq", ...fieldDef };
           return [getParamName(withDefaults), withDefaults];
         }),
       ),
-    [fieldDefs],
+    [fields],
   );
 
   const readFilterFromSearchParams = React.useCallback(
@@ -122,11 +132,23 @@ export function useFilter(fieldDefs: FilterFieldDef[]): DashboardFilter {
     navigate(newUrl, { history: "replace" });
   }, [filter, navigate, writeFilterToUrl]);
 
-  return {
-    filter,
-    setFilter,
-    getKey,
-  };
+  const ctx = React.useMemo(
+    () => ({
+      filter,
+      setFilter,
+      getKey,
+    }),
+    [filter, setFilter, getKey],
+  );
+  return (
+    <FilterContext.Provider value={ctx}>{children}</FilterContext.Provider>
+  );
+}
+
+export function useFilter(): DashboardFilter {
+  const ctx = React.useContext(FilterContext);
+  invariant(ctx, "No filter context available");
+  return ctx;
 }
 
 export interface ExpandedFilter {
@@ -156,11 +178,8 @@ export function flattenFilter(filter: ExpandedFilter): FilterOption[] {
   });
 }
 
-export function useFilterValueState(
-  dashboardFilter: DashboardFilter,
-  field: string,
-  operator: string = "eq",
-) {
+export function useFilterValueState(field: string, operator: string = "eq") {
+  const dashboardFilter = useFilter();
   const value = React.useMemo(() => {
     const expanded = expandFilter(dashboardFilter.filter);
     return expanded[field]?.[operator] ?? null;

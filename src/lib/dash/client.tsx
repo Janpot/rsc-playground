@@ -12,10 +12,21 @@ import {
   QueryClientProvider,
   useQuery,
 } from "@tanstack/react-query";
-import { PieChart as XPieChart } from "@mui/x-charts";
-import { Box, MenuItem, Select, Typography } from "@mui/material";
+import {
+  PieChart as XPieChart,
+  LineChart as XLineChart,
+  LineChartProps as XLineChartProps,
+} from "@mui/x-charts";
+import { Box, MenuItem, Paper, Select, Typography } from "@mui/material";
 import ErrorIcon from "@mui/icons-material/Error";
-import { DashboardFilter, FilterOption, useFilterValueState } from "./filter";
+import {
+  DashboardFilter,
+  FilterFieldDef,
+  FilterOption,
+  FilterProvider,
+  useFilter,
+  useFilterValueState,
+} from "./filter";
 import { DateRangePicker } from "@mui/x-date-pickers-pro/DateRangePicker";
 import dayjs from "dayjs";
 
@@ -25,16 +36,19 @@ const queryClient = new QueryClient({
 
 export interface DashboardProps {
   children?: React.ReactNode;
+  filter?: FilterFieldDef[];
 }
 
-export function Dashboard({ children }: DashboardProps) {
+export function Dashboard({ children, filter = [] }: DashboardProps) {
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <FilterProvider fields={filter}>{children}</FilterProvider>
+    </QueryClientProvider>
   );
 }
 
 export interface ColDefExtraFields {
-  valuePath?: string[];
+  valuePath?: string;
 }
 
 export interface SerializableGridColDef
@@ -43,19 +57,36 @@ export interface SerializableGridColDef
 
 export type DataProviderGridColDef = GridColDef & ColDefExtraFields;
 
-export interface FetchDataParams {
+export interface GetManyParams {
   filter: FilterOption[];
 }
 
-export interface FetchData {
+export interface GetManyMethod {
   (
-    params: FetchDataParams,
+    params: GetManyParams,
   ): Promise<{ rows: any[]; columns?: SerializableGridColDef[] }>;
+}
+
+export interface DataProviderDefinition {
+  getMany: GetManyMethod;
+}
+
+export interface DataProvider {
+  getMany: GetManyMethod;
+}
+
+export function createDataProvider(
+  input: DataProviderDefinition | GetManyMethod,
+): DataProvider {
+  if (typeof input === "function") {
+    return { getMany: input };
+  }
+  return input;
 }
 
 export interface DataGridProps
   extends Pick<DataGridProProps, "pagination" | "autoPageSize"> {
-  dataProvider: FetchData;
+  dataProvider: GetManyMethod;
   columns?: DataProviderGridColDef[];
   filter?: DashboardFilter;
 }
@@ -74,6 +105,10 @@ function getKey(obj: Function) {
     keys.set(obj, key);
   }
   return key;
+}
+
+function parsePath(path: string) {
+  return path.split(".");
 }
 
 function resolvePath(obj: any, path: string[]) {
@@ -103,12 +138,52 @@ function wrapWithDateValueGetter(valueGetter?: GridColDef["valueGetter"]) {
   };
 }
 
+interface ErrorOverlayProps {
+  error?: unknown;
+}
+
+function ErrorOverlay({ error }: ErrorOverlayProps) {
+  return (
+    <Box
+      sx={{
+        position: "absolute",
+        inset: "0 0 0 0",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "background.paper",
+        borderColor: "divider",
+        borderWidth: 1,
+        borderStyle: "solid",
+        borderRadius: 1,
+      }}
+    >
+      <Typography
+        variant="h6"
+        sx={{
+          display: "flex",
+          flexDirection: "row",
+          gap: 1,
+          alignItems: "center",
+        }}
+      >
+        <ErrorIcon color="error" /> Error
+      </Typography>
+      <Typography textAlign="center">
+        {error?.message ?? "Unknown error"}
+      </Typography>
+    </Box>
+  );
+}
+
 export function DataGrid({
   dataProvider: fetchData,
   columns: columnsProp,
-  filter,
   ...props
 }: DataGridProps) {
+  const filter = useFilter();
+
   const key = getKey(fetchData);
 
   const { data, isLoading, error } = useQuery({
@@ -127,8 +202,9 @@ export function DataGrid({
 
       if (!valueGetter && column.valuePath) {
         const { valuePath } = column;
+        const segments = parsePath(valuePath);
         valueGetter = (params: GridValueGetterParams) => {
-          return resolvePath(params.row, valuePath);
+          return resolvePath(params.row, segments);
         };
       }
 
@@ -156,44 +232,13 @@ export function DataGrid({
         loading={isLoading}
         {...props}
       />
-      {error && (
-        <Box
-          sx={{
-            position: "absolute",
-            inset: "0 0 0 0",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "background.paper",
-            borderColor: "divider",
-            borderWidth: 1,
-            borderStyle: "solid",
-            borderRadius: 1,
-          }}
-        >
-          <Typography
-            variant="h6"
-            sx={{
-              display: "flex",
-              flexDirection: "row",
-              gap: 1,
-              alignItems: "center",
-            }}
-          >
-            <ErrorIcon color="error" /> Error
-          </Typography>
-          <Typography textAlign="center">
-            {error?.message ?? "Unknown error"}
-          </Typography>
-        </Box>
-      )}
+      {error && <ErrorOverlay error={error} />}
     </Box>
   );
 }
 
 export interface PieChartProps {
-  dataProvider: FetchData;
+  dataProvider: GetManyMethod;
   dimension: string;
   label: string;
 }
@@ -203,6 +248,8 @@ export function PieChart({
   dimension,
   label,
 }: PieChartProps) {
+  const filter = useFilter();
+
   const key = getKey(fetchData);
 
   const { data, isLoading, isError } = useQuery({
@@ -229,19 +276,13 @@ export function PieChart({
 }
 
 export interface FilterSelectProps {
-  filter: DashboardFilter;
   options: string[];
   field: string;
   operator?: string;
 }
 
-export function FilterSelect({
-  filter,
-  options,
-  field,
-  operator,
-}: FilterSelectProps) {
-  const [value, setValue] = useFilterValueState(filter, field, operator);
+export function FilterSelect({ options, field, operator }: FilterSelectProps) {
+  const [value, setValue] = useFilterValueState(field, operator);
 
   return (
     <Select value={value ?? ""} onChange={(e) => setValue(e.target.value)}>
@@ -255,28 +296,18 @@ export function FilterSelect({
 }
 
 export interface FilterDateRangePickerProps {
-  filter: DashboardFilter;
   field: string;
   startOperator?: string;
   endOperator?: string;
 }
 
 export function FilterDateRangePicker({
-  filter,
   field,
   startOperator = "gte",
   endOperator = "lte",
 }: FilterDateRangePickerProps) {
-  const [startValue, setStartValue] = useFilterValueState(
-    filter,
-    field,
-    startOperator,
-  );
-  const [endValue, setEndValue] = useFilterValueState(
-    filter,
-    field,
-    endOperator,
-  );
+  const [startValue, setStartValue] = useFilterValueState(field, startOperator);
+  const [endValue, setEndValue] = useFilterValueState(field, endOperator);
 
   const value: [dayjs.Dayjs, dayjs.Dayjs] = React.useMemo(
     () => [dayjs(startValue), dayjs(endValue)],
@@ -292,4 +323,45 @@ export function FilterDateRangePicker({
     [setEndValue, setStartValue],
   );
   return <DateRangePicker value={value} onChange={handleChange} />;
+}
+
+export interface LineChartProps extends XLineChartProps {
+  title?: string;
+  dataProvider: GetManyMethod;
+}
+
+const EMPTY_ROWS = [];
+
+export function LineChart({
+  title,
+  dataProvider: fetchData,
+  xAxis,
+  series,
+}: LineChartProps) {
+  const key = getKey(fetchData);
+  const filter = useFilter();
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["data", key, filter?.getKey()],
+    queryFn: () => fetchData({ filter: filter?.filter ?? [] }),
+  });
+
+  return (
+    <Paper>
+      {title ? (
+        <Typography variant="h6" sx={{ padding: 2 }}>
+          {title}
+        </Typography>
+      ) : null}
+      <Box sx={{ position: "relative" }}>
+        <XLineChart
+          dataset={data?.rows ?? EMPTY_ROWS}
+          xAxis={xAxis}
+          series={series}
+          height={300}
+        />
+        {error && <ErrorOverlay error={error} />}
+      </Box>
+    </Paper>
+  );
 }

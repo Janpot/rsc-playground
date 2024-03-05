@@ -5,11 +5,11 @@ import {
   Dashboard,
   DataGrid,
   DataProviderGridColDef,
-  FetchDataParams,
+  GetManyParams,
   FilterSelect,
 } from "../../lib/dash/client";
-import { Container } from "@mui/material";
-import { FilterFieldDef, useFilter } from "@/lib/dash/filter";
+import { Container, Stack } from "@mui/material";
+import { FilterFieldDef } from "@/lib/dash/filter";
 
 const CITIES = new Map([
   ["New York", { lat: 40.71, lon: -74.01, altitude: 10 }],
@@ -20,7 +20,7 @@ const CITIES = new Map([
   ["Baracoa", { lat: 20.35, lon: -74.5, altitude: 1 }],
 ]);
 
-async function forecast({ filter }: FetchDataParams) {
+async function forecast({ filter }: GetManyParams) {
   const url = new URL(
     "https://api.met.no/weatherapi/locationforecast/2.0/compact",
   );
@@ -59,9 +59,15 @@ async function forecast({ filter }: FetchDataParams) {
 
   const body = await response.json();
 
-  return {
-    rows: body.properties.timeseries,
-  };
+  const rows = body.properties.timeseries.map((item: any, index: number) => ({
+    time: item.time,
+    temperature: item.data?.instant?.details?.air_temperature,
+    wind: item.data?.instant?.details?.wind_speed,
+    windDir: item.data?.instant?.details?.wind_from_direction,
+    precipitation: item.data?.next_1_hours?.details?.precipitation_amount,
+  }));
+
+  return { rows };
 }
 
 const FILTER: FilterFieldDef[] = [
@@ -78,45 +84,37 @@ const COLUMNS: DataProviderGridColDef[] = [
     field: "temperature",
     headerName: "Temperature",
     type: "number",
-    valuePath: ["data", "instant", "details", "air_temperature"],
   },
   {
     field: "wind",
     headerName: "Wind",
     type: "number",
-    valuePath: ["data", "instant", "details", "wind_speed"],
   },
   {
     field: "windDir",
     headerName: "Wind Direction",
     type: "number",
-    valuePath: ["data", "instant", "details", "wind_from_direction"],
   },
   {
     field: "precipitation",
     headerName: "Precipitation",
     type: "number",
-    valuePath: ["data", "next_1_hours", "details", "precipitation_amount"],
   },
 ];
 
-export default function Hello() {
-  const filter = useFilter(FILTER);
+export default function DashboardContent() {
   return (
-    <Dashboard>
+    <Dashboard filter={FILTER}>
       <Container sx={{ mt: 5 }}>
-        <FilterSelect
-          options={Array.from(CITIES.keys())}
-          filter={filter}
-          field="city"
-        />
-        <DataGrid
-          dataProvider={forecast}
-          columns={COLUMNS}
-          filter={filter}
-          pagination
-          autoPageSize
-        />
+        <Stack direction="column" spacing={2}>
+          <FilterSelect options={Array.from(CITIES.keys())} field="city" />
+          <DataGrid
+            dataProvider={forecast}
+            columns={COLUMNS}
+            pagination
+            autoPageSize
+          />
+        </Stack>
       </Container>
     </Dashboard>
   );

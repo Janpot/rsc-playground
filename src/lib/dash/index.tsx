@@ -1,16 +1,16 @@
 import "server-only";
 
-import { SerializableGridColDef, FetchData, FetchDataParams } from "./client";
+import { SerializableGridColDef, GetManyMethod, GetManyParams } from "./client";
 import { Pool } from "pg";
 
 interface SqlFunction {
-  (params: FetchDataParams): string;
+  (params: GetManyParams): string;
 }
 
 export function createConnection(connectionString: string) {
   const pool = new Pool({ connectionString });
   return {
-    query(sql: SqlFunction): FetchData {
+    query(sql: SqlFunction): GetManyMethod {
       return async (params) => {
         const { rows, fields } = await pool.query(sql(params));
 
@@ -23,7 +23,7 @@ export function createConnection(connectionString: string) {
               type: "string",
               field,
               headerName: pgField.name,
-              valuePath: [pgField.name],
+              valuePath: pgField.name,
             });
           }
         }
