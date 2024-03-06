@@ -10,6 +10,8 @@ import {
   FilterSelect,
   LineChart,
   LineChartProps,
+  createDataProvider,
+  ValueFormatterParams,
 } from "../../lib/dash/client";
 import { Container, Stack } from "@mui/material";
 import {
@@ -19,7 +21,7 @@ import {
 } from "@/lib/dash/filter";
 import dayjs from "dayjs";
 import Grid2 from "@mui/material/Unstable_Grid2/Grid2";
-import { gaData } from "./data";
+import { fetchGaData } from "./data";
 
 const RESOLUTION = ["Daily", "Monthly"];
 
@@ -62,49 +64,94 @@ async function fetchPackageNpmStats(
   return downloads;
 }
 
-async function npmStats({ filter }: GetManyParams) {
-  const expanded = expandFilter(filter);
+const percentFormat = new Intl.NumberFormat(undefined, {
+  style: "percent",
+});
+function percentFormatter({ value }: ValueFormatterParams): string {
+  return percentFormat.format(value);
+}
 
-  const [
-    muiMaterialDownloads,
-    materialUiCoreDownloads,
-    baseUiDownloads,
-    reactDomDownloads,
-  ] = await Promise.all([
-    fetchPackageNpmStats("@mui/material", expanded),
-    fetchPackageNpmStats("@material-ui/core", expanded),
-    fetchPackageNpmStats("@mui/base", expanded),
-    fetchPackageNpmStats("react-dom", expanded),
-  ]);
+const npmStats = createDataProvider({
+  async getMany({ filter }) {
+    const expanded = expandFilter(filter);
 
-  const aggregated = muiMaterialDownloads.map((item, i) => {
-    const muiMaterialDownloadsCount: number = item.downloads;
-    const materialUiCoreDownloadsCount: number =
-      materialUiCoreDownloads[i].downloads;
-    const baseUiDownloadsCount: number = baseUiDownloads[i].downloads;
-    const reactDomDownloadsCount: number = reactDomDownloads[i].downloads;
+    const [
+      muiMaterialDownloads,
+      materialUiCoreDownloads,
+      baseUiDownloads,
+      reactDomDownloads,
+    ] = await Promise.all([
+      fetchPackageNpmStats("@mui/material", expanded),
+      fetchPackageNpmStats("@material-ui/core", expanded),
+      fetchPackageNpmStats("@mui/base", expanded),
+      fetchPackageNpmStats("react-dom", expanded),
+    ]);
+
+    const aggregated = muiMaterialDownloads.map((item, i) => {
+      const muiMaterialDownloadsCount: number = item.downloads;
+      const materialUiCoreDownloadsCount: number =
+        materialUiCoreDownloads[i].downloads;
+      const baseUiDownloadsCount: number = baseUiDownloads[i].downloads;
+      const reactDomDownloadsCount: number = reactDomDownloads[i].downloads;
+
+      return {
+        day: new Date(item.day),
+        muiMaterialDownloadsCount,
+        materialUiCoreDownloadsCount,
+        baseUiDownloadsCount,
+        coreMarketShare:
+          reactDomDownloadsCount > 0
+            ? (materialUiCoreDownloadsCount + muiMaterialDownloadsCount) /
+              reactDomDownloadsCount
+            : null,
+        baseUiMarketShare:
+          reactDomDownloadsCount > 0
+            ? baseUiDownloadsCount / reactDomDownloadsCount
+            : null,
+      };
+    });
 
     return {
-      day: new Date(item.day),
-      muiMaterialDownloadsCount,
-      materialUiCoreDownloadsCount,
-      baseUiDownloadsCount,
-      coreMarketShare:
-        reactDomDownloadsCount > 0
-          ? (materialUiCoreDownloadsCount + muiMaterialDownloadsCount) /
-            reactDomDownloadsCount
-          : null,
-      baseUiMarketShare:
-        reactDomDownloadsCount > 0
-          ? baseUiDownloadsCount / reactDomDownloadsCount
-          : null,
+      rows: aggregated,
     };
-  });
+  },
+  fields: [
+    {
+      field: "day",
+      label: "Day",
+      type: "date",
+    },
+    {
+      field: "muiMaterialDownloadsCount",
+      label: "@mui/material",
+      type: "number",
+    },
+    {
+      field: "materialUiCoreDownloadsCount",
+      label: "@material-ui/core",
+      type: "number",
+    },
+    {
+      field: "baseUiDownloadsCount",
+      label: "@mui/base",
+      type: "number",
+    },
+    {
+      field: "coreMarketShare",
+      label: "core Market Share",
+      type: "number",
+      valueFormatter: percentFormatter,
+    },
+    {
+      field: "baseUiMarketShare",
+      label: "base Market Share",
+      type: "number",
+      valueFormatter: percentFormatter,
+    },
+  ],
+});
 
-  return {
-    rows: aggregated,
-  };
-}
+const gaData = createDataProvider(fetchGaData);
 
 const today = dayjs();
 
@@ -121,55 +168,19 @@ const FILTER: FilterFieldDef[] = [
   { field: "date", operator: "lte", defaultvalue: today.format("YYYY-MM-DD") },
 ];
 
-const COLUMNS: DataProviderGridColDef[] = [
-  {
-    field: "day",
-    headerName: "Day",
-    type: "date",
-  },
-  {
-    field: "muiMaterialDownloadsCount",
-    headerName: "@mui/material Downloads",
-    type: "number",
-  },
-  {
-    field: "materialUiCoreDownloadsCount",
-    headerName: "@material-ui/core Downloads",
-    type: "number",
-  },
-  {
-    field: "baseUiDownloadsCount",
-    headerName: "@mui/base Downloads",
-    type: "number",
-  },
-  {
-    field: "coreMarketShare",
-    headerName: "core Market Share",
-    type: "number",
-  },
-  {
-    field: "baseUiMarketShare",
-    headerName: "base Market Share",
-    type: "number",
-  },
-];
-
 const X_AXIS = [
   {
     dataKey: "day",
-    scaleType: "time",
   },
 ] satisfies LineChartProps["xAxis"];
 
 const CORE_DOWNLOADS_SERIES = [
   {
     dataKey: "muiMaterialDownloadsCount",
-    label: "@mui/material",
     showMark: false,
   },
   {
     dataKey: "materialUiCoreDownloadsCount",
-    label: "@material-ui/core",
     showMark: false,
   },
 ] satisfies LineChartProps["series"];
@@ -177,7 +188,6 @@ const CORE_DOWNLOADS_SERIES = [
 const CORE_MARKET_SHARE_SERIES = [
   {
     dataKey: "coreMarketShare",
-    label: "core marketshare",
     showMark: false,
   },
 ] satisfies LineChartProps["series"];
@@ -185,7 +195,6 @@ const CORE_MARKET_SHARE_SERIES = [
 const BASE_DOWNLOADS_SERIES = [
   {
     dataKey: "baseUiDownloadsCount",
-    label: "@mui/base",
     showMark: false,
   },
 ] satisfies LineChartProps["series"];
@@ -193,7 +202,6 @@ const BASE_DOWNLOADS_SERIES = [
 const BSE_MARKET_SHARE_SERIES = [
   {
     dataKey: "baseUiMarketShare",
-    label: "base marketshare",
     showMark: false,
   },
 ] satisfies LineChartProps["series"];
@@ -213,18 +221,7 @@ export default function DashboardContent() {
             <FilterDateRangePicker field="date" />
             <FilterSelect options={RESOLUTION} field="resolution" />
           </Stack>
-          <DataGrid
-            dataProvider={npmStats}
-            columns={COLUMNS}
-            pagination
-            autoPageSize
-          />
-          <DataGrid
-            dataProvider={gaData}
-            columns={GA_DATA_COLUMNS}
-            pagination
-            autoPageSize
-          />
+          <DataGrid dataProvider={npmStats} pagination autoPageSize />
           <Grid2 container spacing={4}>
             <Grid2 xs={12} md={6}>
               <LineChart
@@ -259,6 +256,12 @@ export default function DashboardContent() {
               />
             </Grid2>
           </Grid2>
+          <DataGrid
+            dataProvider={gaData}
+            columns={GA_DATA_COLUMNS}
+            pagination
+            autoPageSize
+          />
         </Stack>
       </Container>
     </Dashboard>

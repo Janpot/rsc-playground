@@ -7,6 +7,7 @@ import {
   DataProviderGridColDef,
   GetManyParams,
   FilterSelect,
+  createDataProvider,
 } from "../../lib/dash/client";
 import { Container, Stack } from "@mui/material";
 import { FilterFieldDef } from "@/lib/dash/filter";
@@ -20,7 +21,9 @@ const CITIES = new Map([
   ["Baracoa", { lat: 20.35, lon: -74.5, altitude: 1 }],
 ]);
 
-async function forecast({ filter }: GetManyParams) {
+const forecast = createDataProvider(async function forecast({
+  filter,
+}: GetManyParams) {
   const url = new URL(
     "https://api.met.no/weatherapi/locationforecast/2.0/compact",
   );
@@ -68,7 +71,7 @@ async function forecast({ filter }: GetManyParams) {
   }));
 
   return { rows };
-}
+});
 
 const FILTER: FilterFieldDef[] = [
   { field: "city", defaultvalue: CITIES.keys().next().value },
