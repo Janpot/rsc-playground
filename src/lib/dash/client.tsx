@@ -1,35 +1,23 @@
 "use client";
 
-import {
-  DataGridPro,
-  DataGridProProps,
-  GridColDef,
-  GridValueGetterParams,
-} from "@mui/x-data-grid-pro";
 import React from "react";
 import {
   QueryClient,
   QueryClientProvider,
   useQuery,
 } from "@tanstack/react-query";
+import { PieChart as XPieChart } from "@mui/x-charts";
+import { Box, MenuItem, Select } from "@mui/material";
 import {
-  PieChart as XPieChart,
-  LineChart as XLineChart,
-  LineChartProps as XLineChartProps,
-  AxisConfig,
-} from "@mui/x-charts";
-import { Box, MenuItem, Paper, Select, Typography } from "@mui/material";
-import ErrorIcon from "@mui/icons-material/Error";
-import {
-  DashboardFilter,
   FilterFieldDef,
-  FilterOption,
   FilterProvider,
   useFilter,
   useFilterValueState,
 } from "./filter";
 import { DateRangePicker } from "@mui/x-date-pickers-pro/DateRangePicker";
 import dayjs from "dayjs";
+import { getObjectKey } from "./utils";
+import { ResolvedDataProvider } from "./data";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false } },
@@ -48,246 +36,9 @@ export function Dashboard({ children, filter = [] }: DashboardProps) {
   );
 }
 
-export interface ColDefExtraFields {
-  valuePath?: string;
-}
-
-export interface SerializableGridColDef
-  extends Pick<GridColDef, "field" | "type" | "headerName">,
-    ColDefExtraFields {}
-
-export type DataProviderGridColDef = GridColDef & ColDefExtraFields;
-
-export interface GetManyParams {
-  filter: FilterOption[];
-}
-
-export interface GetManyMethod {
-  (
-    params: GetManyParams,
-  ): Promise<{ rows: any[]; columns?: SerializableGridColDef[] }>;
-}
-
-export interface ValueFormatterParams {
-  field: string;
-  value: any;
-}
-
-export interface ValueFormatter {
-  (params: ValueFormatterParams): string;
-}
-
-export interface FieldDef {
-  field: string;
-  type?: string;
-  label?: string;
-  valueFormatter?: ValueFormatter;
-}
-
-export interface ResolvedField {
-  field: string;
-  type: string;
-  label: string;
-  valueFormatter?: ValueFormatter;
-}
-
-export interface DataProviderDefinition {
-  getMany: GetManyMethod;
-  fields?: FieldDef[];
-}
-
-export interface ResolvedDataProvider {
-  getMany: GetManyMethod;
-  fields: ResolvedField[];
-}
-
-export function createDataProvider(
-  input: DataProviderDefinition | GetManyMethod,
-): ResolvedDataProvider {
-  const fields = (
-    typeof input !== "function" && input.fields ? input.fields : []
-  ).map((fieldDef) => ({
-    field: fieldDef.field,
-    type: fieldDef.type ?? "string",
-    label: fieldDef.label ?? fieldDef.field,
-    ...fieldDef,
-  }));
-  if (typeof input === "function") {
-    return { getMany: input, fields };
-  }
-  return { ...input, fields };
-}
-
-export interface DataGridProps
-  extends Pick<DataGridProProps, "pagination" | "autoPageSize"> {
-  dataProvider: ResolvedDataProvider;
-  columns?: DataProviderGridColDef[];
-  filter?: DashboardFilter;
-}
-
-function getRowId(row: any) {
-  return Object.prototype.hasOwnProperty.call(row, "id") ? row.id : row._index;
-}
-
-const keys = new WeakMap();
-let nextKey = 1;
-
-function getKey(obj: Function | Object) {
-  let key = keys.get(obj);
-  if (!key) {
-    key = nextKey++;
-    keys.set(obj, key);
-  }
-  return key;
-}
-
-function parsePath(path: string) {
-  return path.split(".");
-}
-
-function resolvePath(obj: any, path: string[]) {
-  return path.reduce((acc, key) => {
-    return typeof acc === "object" && Object.hasOwnProperty.call(acc, key)
-      ? acc[key]
-      : undefined;
-  }, obj);
-}
-
-function dateValueGetter({ value }: GridValueGetterParams): Date | undefined {
-  if (value === null || value === undefined) {
-    return undefined;
-  }
-
-  return new Date(value);
-}
-
-function wrapWithDateValueGetter(valueGetter?: GridColDef["valueGetter"]) {
-  if (!valueGetter) {
-    return dateValueGetter;
-  }
-
-  return (params: GridValueGetterParams) => {
-    const value = valueGetter(params);
-    return dateValueGetter({ ...params, value });
-  };
-}
-
-interface ErrorOverlayProps {
-  error?: unknown;
-}
-
-function ErrorOverlay({ error }: ErrorOverlayProps) {
-  return (
-    <Box
-      sx={{
-        position: "absolute",
-        inset: "0 0 0 0",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "background.paper",
-        borderColor: "divider",
-        borderWidth: 1,
-        borderStyle: "solid",
-        borderRadius: 1,
-      }}
-    >
-      <Typography
-        variant="h6"
-        sx={{
-          display: "flex",
-          flexDirection: "row",
-          gap: 1,
-          alignItems: "center",
-        }}
-      >
-        <ErrorIcon color="error" /> Error
-      </Typography>
-      <Typography textAlign="center">
-        {error?.message ?? "Unknown error"}
-      </Typography>
-    </Box>
-  );
-}
-
-function getColumnsFromFields(
-  fields: ResolvedField[],
-): DataProviderGridColDef[] {
-  return fields.map((field) => {
-    const colDef: DataProviderGridColDef = {
-      field: field.field,
-      type: field.type,
-      headerName: field.label,
-      valuePath: field.field,
-    };
-    const valueFormatter = field.valueFormatter;
-    if (valueFormatter) {
-      colDef.valueFormatter = valueFormatter;
-    }
-    return colDef;
-  });
-}
-
-export function DataGrid({
-  dataProvider,
-  columns: columnsProp,
-  ...props
-}: DataGridProps) {
-  const filter = useFilter();
-
-  const key = getKey(dataProvider);
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["data", key, filter?.getKey()],
-    queryFn: () => dataProvider.getMany({ filter: filter?.filter ?? [] }),
-  });
-
-  const columns = React.useMemo(() => {
-    const resolvedColumns: DataProviderGridColDef[] =
-      columnsProp ?? data?.columns ?? getColumnsFromFields(dataProvider.fields);
-
-    return resolvedColumns.map((column) => {
-      let valueGetter = column.valueGetter;
-
-      if (!valueGetter && column.valuePath) {
-        const { valuePath } = column;
-        const segments = parsePath(valuePath);
-        valueGetter = (params: GridValueGetterParams) => {
-          return resolvePath(params.row, segments);
-        };
-      }
-
-      if (column.type === "date" || column.type === "dateTime") {
-        valueGetter = wrapWithDateValueGetter(valueGetter);
-      }
-
-      return {
-        ...column,
-        valueGetter,
-      };
-    });
-  }, [columnsProp, data?.columns, dataProvider.fields]);
-
-  console.log(columns);
-
-  const rows = React.useMemo(() => {
-    return data?.rows.map((row, index) => ({ ...row, _index: index })) ?? [];
-  }, [data]);
-
-  return (
-    <Box sx={{ height: 400, position: "relative" }}>
-      <DataGridPro
-        getRowId={getRowId}
-        rows={rows}
-        columns={columns}
-        loading={isLoading}
-        {...props}
-      />
-      {error && <ErrorOverlay error={error} />}
-    </Box>
-  );
-}
+export * from "./data";
+export * from "./DataGrid";
+export * from "./LineChart";
 
 export interface PieChartProps {
   dataProvider: ResolvedDataProvider;
@@ -298,7 +49,7 @@ export interface PieChartProps {
 export function PieChart({ dataProvider, dimension, label }: PieChartProps) {
   const filter = useFilter();
 
-  const key = getKey(dataProvider);
+  const key = getObjectKey(dataProvider);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["data", key],
@@ -371,89 +122,4 @@ export function FilterDateRangePicker({
     [setEndValue, setStartValue],
   );
   return <DateRangePicker value={value} onChange={handleChange} />;
-}
-
-export interface LineChartProps extends XLineChartProps {
-  title?: string;
-  dataProvider: ResolvedDataProvider;
-}
-
-export function LineChart({
-  title,
-  dataProvider,
-  xAxis,
-  series,
-}: LineChartProps) {
-  const key = getKey(dataProvider);
-  const filter = useFilter();
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["data", key, filter?.getKey()],
-    queryFn: () => dataProvider.getMany({ filter: filter?.filter ?? [] }),
-  });
-
-  const fieldsMap = React.useMemo(() => {
-    return new Map(dataProvider.fields.map((field) => [field.field, field]));
-  }, [dataProvider.fields]);
-
-  const resolvedXAxis = React.useMemo(() => {
-    return (
-      xAxis?.map((axis) => {
-        let defaults: Partial<AxisConfig> = {};
-        if (axis.dataKey) {
-          const field = fieldsMap.get(axis.dataKey);
-          if (field) {
-            defaults = {
-              label: field.label,
-              scaleType: field.type === "date" ? "time" : undefined,
-            };
-          }
-        }
-        return { ...defaults, ...axis };
-      }) ?? []
-    );
-  }, [xAxis, fieldsMap]);
-
-  const resolvedSeries = React.useMemo(() => {
-    return series.map((s) => {
-      let defaults: Partial<XLineChartProps["series"][number]> = {};
-      if (s.dataKey) {
-        const field = fieldsMap.get(s.dataKey);
-        if (field) {
-          defaults = {
-            label: field.label,
-          };
-          const valueFormatter = field.valueFormatter;
-          if (valueFormatter) {
-            defaults.valueFormatter = (value: any) =>
-              valueFormatter({ value, field: field.field });
-          }
-        }
-      }
-      return { ...defaults, ...s };
-    });
-  }, [series, fieldsMap]);
-
-  const rows = React.useMemo(() => {
-    return data?.rows ?? [];
-  }, [data]);
-
-  return (
-    <Paper>
-      {title ? (
-        <Typography variant="h6" sx={{ padding: 2 }}>
-          {title}
-        </Typography>
-      ) : null}
-      <Box sx={{ position: "relative" }}>
-        <XLineChart
-          dataset={rows}
-          xAxis={resolvedXAxis}
-          series={resolvedSeries}
-          height={300}
-        />
-        {error && <ErrorOverlay error={error} />}
-      </Box>
-    </Paper>
-  );
 }
