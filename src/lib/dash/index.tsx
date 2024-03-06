@@ -1,6 +1,6 @@
 import "server-only";
 
-import { SerializableGridColDef, GetManyMethod, GetManyParams } from "./client";
+import { FieldDef, GetManyMethod, GetManyParams } from "./client";
 import { Pool } from "pg";
 
 interface SqlFunction {
@@ -14,7 +14,7 @@ export function createConnection(connectionString: string) {
       return async (params) => {
         const { rows, fields } = await pool.query(sql(params));
 
-        const columns = new Map<string, SerializableGridColDef>();
+        const columns = new Map<string, FieldDef>();
 
         for (const pgField of fields) {
           const field = pgField.tableID + "." + pgField.name;
@@ -22,15 +22,14 @@ export function createConnection(connectionString: string) {
             columns.set(field, {
               type: "string",
               field,
-              headerName: pgField.name,
-              valuePath: pgField.name,
+              label: pgField.name,
             });
           }
         }
 
         return {
           rows: rows.map((row, _index) => ({ ...row, _index })),
-          columns: Array.from(columns.values()),
+          fields: Array.from(columns.values()),
         };
       };
     },
