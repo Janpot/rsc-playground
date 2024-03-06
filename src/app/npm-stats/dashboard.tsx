@@ -4,8 +4,6 @@ import * as React from "react";
 import {
   Dashboard,
   DataGrid,
-  DataProviderGridColDef,
-  GetManyParams,
   FilterDateRangePicker,
   FilterSelect,
   LineChart,
