@@ -14,7 +14,11 @@ export function FilterSelect({ options, field, operator }: FilterSelectProps) {
   const [value, setValue] = useFilterValueState(field, operator);
 
   return (
-    <Select value={value ?? ""} onChange={(e) => setValue(e.target.value)}>
+    <Select
+      value={value ?? ""}
+      onChange={(e) => setValue(e.target.value)}
+      label={field}
+    >
       {options.map((option) => (
         <MenuItem key={option} value={option}>
           {option}

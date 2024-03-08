@@ -32,9 +32,16 @@ function getParamName({
   return `${field}[${operator}]`;
 }
 
-export const FilterContext = React.createContext<DashboardFilter | undefined>(
-  undefined,
-);
+const defaultFilter: DashboardFilter = {
+  filter: [],
+  setFilter: () => {
+    throw new Error("No filter context available");
+  },
+  getKey: () => "[]",
+};
+
+export const FilterContext =
+  React.createContext<DashboardFilter>(defaultFilter);
 
 export interface FilterProviderProps {
   fields: FilterFieldDef[];
@@ -146,9 +153,7 @@ export function FilterProvider({ fields, children }: FilterProviderProps) {
 }
 
 export function useFilter(): DashboardFilter {
-  const ctx = React.useContext(FilterContext);
-  invariant(ctx, "No filter context available");
-  return ctx;
+  return React.useContext(FilterContext);
 }
 
 export interface ExpandedFilter {
@@ -184,6 +189,7 @@ export function useFilterValueState(field: string, operator: string = "eq") {
     const expanded = expandFilter(dashboardFilter.filter);
     return expanded[field]?.[operator] ?? null;
   }, [field, dashboardFilter, operator]);
+
   const setValue = React.useCallback(
     (newValue: string | null) => {
       dashboardFilter.setFilter((existing) => {
@@ -200,6 +206,7 @@ export function useFilterValueState(field: string, operator: string = "eq") {
     },
     [field, dashboardFilter, operator],
   );
+
   return [value, setValue] satisfies [
     string | null,
     (newValue: string | null) => void,

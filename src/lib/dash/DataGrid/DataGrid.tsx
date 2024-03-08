@@ -12,6 +12,7 @@ import { Box } from "@mui/material";
 import {
   ResolvedDataProvider,
   ResolvedField,
+  Datum,
   useDataProviderGetMany,
 } from "../data";
 import { CardSurface, ErrorOverlay } from "../components";
@@ -19,10 +20,11 @@ import { CardSurface, ErrorOverlay } from "../components";
 export interface DataGridProps<R extends GridValidRowModel>
   extends Pick<DataGridProProps<R>, "pagination" | "autoPageSize"> {
   columns?: readonly GridColDef<R>[];
-  dataProvider: ResolvedDataProvider;
+  dataProvider: ResolvedDataProvider<R>;
 }
 
 function getRowId(row: any) {
+  console.log("row", row);
   return Object.prototype.hasOwnProperty.call(row, "id") ? row.id : row._index;
 }
 
@@ -45,9 +47,11 @@ function wrapWithDateValueGetter(valueGetter?: GridColDef["valueGetter"]) {
   };
 }
 
-function getColumnsFromFields(fields: ResolvedField[]): readonly GridColDef[] {
+function getColumnsFromFields<R extends Datum>(
+  fields: ResolvedField<R>[],
+): readonly GridColDef<R>[] {
   return fields.map((field) => {
-    const colDef: GridColDef = {
+    const colDef: GridColDef<R> = {
       field: field.field,
       type: field.type,
       headerName: field.label,
