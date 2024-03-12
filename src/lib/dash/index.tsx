@@ -14,7 +14,7 @@ export function createConnection(connectionString: string) {
       return async (params) => {
         const { rows, fields } = await pool.query(sql(params));
 
-        const columns = new Map<string, FieldDef>();
+        const columns = new Map<string, FieldDef<any>>();
 
         for (const pgField of fields) {
           const field = pgField.tableID + "." + pgField.name;
