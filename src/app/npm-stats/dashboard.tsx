@@ -50,13 +50,19 @@ async function fetchPackageNpmStats(
   let downloads = body.downloads;
 
   if (expanded.resolution.eq === "Monthly") {
-    const grouped = Object.groupBy(downloads, (item) =>
+    // @ts-expect-error
+    const grouped = Object.groupBy(downloads, (item: any) =>
       dayjs(item.day).format("YYYY-MM"),
     );
-    downloads = Object.entries(grouped).map(([day, items]) => ({
-      day: dayjs(day).format("YYYY-MM-DD"),
-      downloads: items.reduce((acc, item) => acc + item.downloads, 0),
-    }));
+    downloads = (Object.entries(grouped) as [string, any[]][]).map(
+      ([day, items]) => ({
+        day: dayjs(day).format("YYYY-MM-DD"),
+        downloads: items.reduce(
+          (acc: number, item: any) => acc + item.downloads,
+          0,
+        ),
+      }),
+    );
   }
 
   return downloads;
@@ -65,8 +71,10 @@ async function fetchPackageNpmStats(
 const percentFormat = new Intl.NumberFormat(undefined, {
   style: "percent",
 });
-function percentFormatter({ value }: ValueFormatterParams): string {
-  return percentFormat.format(value);
+function percentFormatter({
+  value,
+}: ValueFormatterParams<any, string>): string {
+  return percentFormat.format(Number(value));
 }
 
 const npmStats = createDataProvider({
@@ -85,7 +93,7 @@ const npmStats = createDataProvider({
       fetchPackageNpmStats("react-dom", expanded),
     ]);
 
-    const aggregated = muiMaterialDownloads.map((item, i) => {
+    const aggregated = muiMaterialDownloads.map((item: any, i: number) => {
       const muiMaterialDownloadsCount: number = item.downloads;
       const materialUiCoreDownloadsCount: number =
         materialUiCoreDownloads[i].downloads;
@@ -170,7 +178,7 @@ const X_AXIS = [
   {
     dataKey: "day",
   },
-] satisfies LineChartProps["xAxis"];
+] satisfies LineChartProps<any>["xAxis"];
 
 const CORE_DOWNLOADS_SERIES = [
   {
@@ -181,28 +189,28 @@ const CORE_DOWNLOADS_SERIES = [
     dataKey: "materialUiCoreDownloadsCount",
     showMark: false,
   },
-] satisfies LineChartProps["series"];
+] satisfies LineChartProps<any>["series"];
 
 const CORE_MARKET_SHARE_SERIES = [
   {
     dataKey: "coreMarketShare",
     showMark: false,
   },
-] satisfies LineChartProps["series"];
+] satisfies LineChartProps<any>["series"];
 
 const BASE_DOWNLOADS_SERIES = [
   {
     dataKey: "baseUiDownloadsCount",
     showMark: false,
   },
-] satisfies LineChartProps["series"];
+] satisfies LineChartProps<any>["series"];
 
 const BSE_MARKET_SHARE_SERIES = [
   {
     dataKey: "baseUiMarketShare",
     showMark: false,
   },
-] satisfies LineChartProps["series"];
+] satisfies LineChartProps<any>["series"];
 
 const GA_DATA_COLUMNS = [
   {

@@ -11,7 +11,7 @@ export type FieldType = "string" | "number" | "boolean" | "date";
 
 export interface ValueFormatterParams<R extends Datum, K extends ValidProp<R>> {
   field: K;
-  value: R[K];
+  value: unknown;
 }
 
 export interface ValueFormatter<R extends Datum, K extends ValidProp<R>> {
@@ -48,11 +48,13 @@ export interface ResolvedField<
 
 export interface DataProviderDefinition<R extends Datum> {
   getMany: GetManyMethod;
+  createOne?: (data: R) => Promise<R>;
   fields?: FieldDef<R>[];
 }
 
 export interface ResolvedDataProvider<R extends Datum> {
   getMany: GetManyMethod;
+  createOne?: (data: R) => Promise<R>;
   fields: ResolvedField<R>[];
 }
 

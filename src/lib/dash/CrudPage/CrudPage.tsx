@@ -22,7 +22,7 @@ import { useParams, usePathname } from "next/navigation";
 import invariant from "invariant";
 import { ArrowBack } from "@mui/icons-material";
 import { useMutation } from "@tanstack/react-query";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, DefaultValues, Path, useForm } from "react-hook-form";
 import { LoadingButton } from "@mui/lab";
 
 const CrudContext = React.createContext<{
@@ -143,21 +143,22 @@ function ListPage({}: ListPageProps) {
 
 interface NewPageProps {}
 
-function NewPage({}: NewPageProps) {
+function NewPage<R extends Datum>({}: NewPageProps) {
   const { name, basePath, dataProvider } = useCrudContext();
   const { mutate, isPending } = useMutation({
     async mutationFn(data: any) {
+      invariant(dataProvider.createOne, "createOne not implemented");
       await dataProvider.createOne(data);
     },
   });
-  const { control, handleSubmit } = useForm({
+  const { control, handleSubmit } = useForm<R>({
     defaultValues: Object.fromEntries(
       dataProvider.fields.map((field) => {
         return [field.field, ""];
       }),
-    ),
+    ) as DefaultValues<R>,
   });
-  const onSubmit = (values) => {
+  const onSubmit = (values: R) => {
     mutate(values);
   };
   return (
@@ -178,7 +179,7 @@ function NewPage({}: NewPageProps) {
           return (
             <Controller
               key={field.field}
-              name={field.field}
+              name={field.field as Path<R>}
               control={control}
               render={(params) => {
                 switch (field.type) {

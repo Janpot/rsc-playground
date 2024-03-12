@@ -4,9 +4,17 @@ import React from "react";
 import { createDataProvider } from "@/lib/dash/data";
 import { CrudPage } from "@/lib/dash/CrudPage";
 
+type Employee = {
+  id: number;
+  name: string;
+  age: number;
+  active: boolean;
+  lastContacted: Date;
+};
+
 let nextId = 1;
 const getNextId = () => nextId++;
-const DATA = [
+const DATA: Employee[] = [
   {
     id: getNextId(),
     name: "John Doe",
@@ -23,7 +31,7 @@ const DATA = [
   },
 ];
 
-const employees = createDataProvider({
+const employees = createDataProvider<Employee>({
   async getMany({ filter }) {
     return {
       rows: DATA,
