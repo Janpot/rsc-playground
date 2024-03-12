@@ -43,7 +43,7 @@ async function callGetRows<R extends GridValidRowModel>([
       pageSize: paginationModel.pageSize,
       start: paginationModel.page * paginationModel.pageSize,
     },
-    filterModel: {},
+    filterModel: { items: [] },
   });
   return data;
 }

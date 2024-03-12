@@ -1,5 +1,6 @@
 import {
   GridColDef,
+  GridFilterModel,
   GridPaginationModel,
   GridRowId,
   GridSortModel,
@@ -43,6 +44,9 @@ export interface ListRowsResult<R extends GridValidRowModel> {
   rowIdField?: string;
   paginationMode?: "server" | "client";
   sortingMode?: "server" | "client";
+  cursor?: string;
+  totalCount?: number;
+  hasNextPage?: boolean;
 }
 
 export interface GetRows<

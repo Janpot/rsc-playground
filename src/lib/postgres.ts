@@ -1,6 +1,10 @@
 import { Pool } from "pg";
 import { DataSource, ServerGridColDef } from "./types";
 
+declare global {
+  var _connections: Map<string, Pool> | undefined;
+}
+
 function getConnection(connectionString: string): Pool {
   global._connections ??= new Map<string, Pool>();
   let pool = global._connections.get(connectionString);
