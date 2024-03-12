@@ -8,6 +8,13 @@ const nextConfig = {
   experimental: {
     // mdxRs: true,
   },
+  typescript: {
+    // !! WARN !!
+    // Dangerously allow production builds to successfully complete even if
+    // your project has type errors.
+    // !! WARN !!
+    ignoreBuildErrors: true,
+  },
 };
 
 const currentFile = url.fileURLToPath(new URL(".", import.meta.url));
@@ -20,13 +27,6 @@ const withMDX = nextMdx({
         { connectionsFile: path.resolve(currentFile, "./src/connections") },
       ],
     ],
-  },
-  typescript: {
-    // !! WARN !!
-    // Dangerously allow production builds to successfully complete even if
-    // your project has type errors.
-    // !! WARN !!
-    ignoreBuildErrors: true,
   },
 });
 
