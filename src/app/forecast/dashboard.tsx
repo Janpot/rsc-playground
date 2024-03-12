@@ -146,11 +146,7 @@ export default function DashboardContent() {
           <Box>
             <Grid2 container spacing={4}>
               <Grid2 xs={12} md={4}>
-                <Metric
-                  dataProvider={forecast}
-                  field="temperature"
-                  aggregation="average"
-                />
+                <Metric dataProvider={forecast} field="temperature" />
               </Grid2>
               <Grid2 xs={12} md={4}>
                 <Metric dataProvider={forecast} field="wind" />
