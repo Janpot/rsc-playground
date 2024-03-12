@@ -3,6 +3,7 @@
 import * as React from "react";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { NavigationContext, useNavigate } from "./navigation";
+import { LinearProgress } from "@mui/material";
 
 export interface AppNavigationProviderProps {
   children?: React.ReactNode;
@@ -35,8 +36,10 @@ export function AppNavigationProvider({
   }, [useNavigate]);
 
   return (
-    <NavigationContext.Provider value={navigation}>
-      {children}
-    </NavigationContext.Provider>
+    <React.Suspense fallback={<LinearProgress />}>
+      <NavigationContext.Provider value={navigation}>
+        {children}
+      </NavigationContext.Provider>
+    </React.Suspense>
   );
 }
