@@ -99,7 +99,7 @@ export default function MyClientDataGrid<R extends GridValidRowModel>({
     error,
   } = useSWR<ListRowsResult<R>>(
     [dataSource.getRows, rawPaginationModel, serverSortModel],
-    callGetRows,
+    callGetRows as any,
   );
 
   const listResultColumns = listResult?.columns;

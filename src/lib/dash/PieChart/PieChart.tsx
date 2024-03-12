@@ -3,22 +3,22 @@
 import React from "react";
 import { PieChart as XPieChart } from "@mui/x-charts";
 import { Box, Typography } from "@mui/material";
-import { useDataProviderGetMany, ResolvedDataProvider } from "../data";
+import { useDataProviderGetMany, ResolvedDataProvider, Datum } from "../data";
 import { CardSurface, LoadingOverlay, ErrorOverlay } from "../components";
 
-export interface PieChartProps {
+export interface PieChartProps<R extends Datum> {
   title?: string;
-  dataProvider: ResolvedDataProvider;
+  dataProvider: ResolvedDataProvider<R>;
   dimension: string;
   label: string;
 }
 
-export function PieChart({
+export function PieChart<R extends Datum>({
   dataProvider,
   dimension,
   label,
   title,
-}: PieChartProps) {
+}: PieChartProps<R>) {
   const { data, isLoading, error } = useDataProviderGetMany(dataProvider);
 
   const series = React.useMemo(() => {
