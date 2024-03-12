@@ -11,7 +11,7 @@ import {
   createDataProvider,
   ValueFormatterParams,
 } from "../../lib/dash/client";
-import { Container, Stack } from "@mui/material";
+import { Box, Container, Stack } from "@mui/material";
 import {
   ExpandedFilter,
   FilterFieldDef,
@@ -220,40 +220,42 @@ export default function DashboardContent() {
             <FilterSelect options={RESOLUTION} field="resolution" />
           </Stack>
           <DataGrid dataProvider={npmStats} pagination autoPageSize />
-          <Grid2 container spacing={4}>
-            <Grid2 xs={12} md={6}>
-              <LineChart
-                title="Material UI (@mui/material)"
-                dataProvider={npmStats}
-                xAxis={X_AXIS}
-                series={CORE_DOWNLOADS_SERIES}
-              />
+          <Box>
+            <Grid2 container spacing={4}>
+              <Grid2 xs={12} md={6}>
+                <LineChart
+                  title="Material UI (@mui/material)"
+                  dataProvider={npmStats}
+                  xAxis={X_AXIS}
+                  series={CORE_DOWNLOADS_SERIES}
+                />
+              </Grid2>
+              <Grid2 xs={12} md={6}>
+                <LineChart
+                  title="Base UI (@mui/base)"
+                  dataProvider={npmStats}
+                  xAxis={X_AXIS}
+                  series={BASE_DOWNLOADS_SERIES}
+                />
+              </Grid2>
+              <Grid2 xs={12} md={6}>
+                <LineChart
+                  title="Material UI React DOM marketshare"
+                  dataProvider={npmStats}
+                  xAxis={X_AXIS}
+                  series={CORE_MARKET_SHARE_SERIES}
+                />
+              </Grid2>
+              <Grid2 xs={12} md={6}>
+                <LineChart
+                  title="Base UI React DOM marketshare"
+                  dataProvider={npmStats}
+                  xAxis={X_AXIS}
+                  series={BSE_MARKET_SHARE_SERIES}
+                />
+              </Grid2>
             </Grid2>
-            <Grid2 xs={12} md={6}>
-              <LineChart
-                title="Base UI (@mui/base)"
-                dataProvider={npmStats}
-                xAxis={X_AXIS}
-                series={BASE_DOWNLOADS_SERIES}
-              />
-            </Grid2>
-            <Grid2 xs={12} md={6}>
-              <LineChart
-                title="Material UI React DOM marketshare"
-                dataProvider={npmStats}
-                xAxis={X_AXIS}
-                series={CORE_MARKET_SHARE_SERIES}
-              />
-            </Grid2>
-            <Grid2 xs={12} md={6}>
-              <LineChart
-                title="Base UI React DOM marketshare"
-                dataProvider={npmStats}
-                xAxis={X_AXIS}
-                series={BSE_MARKET_SHARE_SERIES}
-              />
-            </Grid2>
-          </Grid2>
+          </Box>
           <DataGrid
             dataProvider={gaData}
             columns={GA_DATA_COLUMNS}
