@@ -2,7 +2,7 @@
 
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { FilterFieldDef, FilterProvider } from "../filter";
+import { FilterBinding, FilterBindingProvider } from "../filter";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false } },
@@ -10,13 +10,15 @@ const queryClient = new QueryClient({
 
 export interface DashboardProps {
   children?: React.ReactNode;
-  filter?: FilterFieldDef[];
+  bindings?: FilterBinding<any>[];
 }
 
-export function Dashboard({ children, filter = [] }: DashboardProps) {
+export function Dashboard({ children, bindings = [] }: DashboardProps) {
   return (
     <QueryClientProvider client={queryClient}>
-      <FilterProvider fields={filter}>{children}</FilterProvider>
+      <FilterBindingProvider bindings={bindings}>
+        {children}
+      </FilterBindingProvider>
     </QueryClientProvider>
   );
 }

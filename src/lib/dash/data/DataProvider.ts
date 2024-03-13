@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { FilterOption, useFilter } from "../filter";
+import { FilterOption, getKeyFromFilter, useAppliedFilter } from "../filter";
 import { getObjectKey } from "../utils";
 
 export type ValidDatum = { [key: string]: unknown };
@@ -81,10 +81,10 @@ export function useDataProviderGetMany<R extends Datum>(
   dataProvider: ResolvedDataProvider<R>,
 ) {
   const key = getObjectKey(dataProvider);
-  const filter = useFilter();
+  const filter = useAppliedFilter(dataProvider);
 
   return useQuery({
-    queryKey: ["data", key, filter?.getKey()],
-    queryFn: () => dataProvider.getMany({ filter: filter?.filter ?? [] }),
+    queryKey: ["data", key, getKeyFromFilter(filter)],
+    queryFn: () => dataProvider.getMany({ filter: filter ?? [] }),
   });
 }

@@ -1,7 +1,7 @@
 import "client-only";
 import * as React from "react";
 import { useNavigate, useSearchParams } from "./navigation";
-import invariant from "invariant";
+import type { ResolvedDataProvider, ValidDatum } from "./data";
 
 export interface FilterOption {
   field: string;
@@ -22,138 +22,8 @@ export interface DashboardFilter {
   getKey: () => string;
 }
 
-function getParamName({
-  field,
-  operator = "eq",
-}: Pick<FilterOption, "field" | "operator">) {
-  if (operator === "eq") {
-    return field;
-  }
-  return `${field}[${operator}]`;
-}
-
-const defaultFilter: DashboardFilter = {
-  filter: [],
-  setFilter: () => {
-    throw new Error("No filter context available");
-  },
-  getKey: () => "[]",
-};
-
-export const FilterContext =
-  React.createContext<DashboardFilter>(defaultFilter);
-
-export interface FilterProviderProps {
-  fields: FilterFieldDef[];
-  children?: React.ReactNode;
-}
-
-export function FilterProvider({ fields, children }: FilterProviderProps) {
-  const searchParamMap = React.useMemo(
-    () =>
-      new Map(
-        fields.map((fieldDef) => {
-          const withDefaults = { operator: "eq", ...fieldDef };
-          return [getParamName(withDefaults), withDefaults];
-        }),
-      ),
-    [fields],
-  );
-
-  const readFilterFromSearchParams = React.useCallback(
-    (searchParams: URLSearchParams) => {
-      const filter: FilterOption[] = [];
-
-      for (const [name, param] of searchParamMap.entries()) {
-        const queryParamValue = searchParams.get(name);
-        if (queryParamValue !== null) {
-          filter.push({
-            field: param.field,
-            operator: param.operator,
-            value: queryParamValue,
-          });
-        } else if (param.defaultvalue) {
-          filter.push({
-            field: param.field,
-            operator: param.operator,
-            value: param.defaultvalue,
-          });
-        }
-      }
-
-      return filter;
-    },
-    [searchParamMap],
-  );
-
-  const searchParams = useSearchParams();
-
-  const [filter, setFilter] = React.useState(() =>
-    readFilterFromSearchParams(searchParams),
-  );
-
-  const writeFilterToSearchParams = React.useCallback(
-    (searchParams: URLSearchParams, filter: FilterOption[]) => {
-      const filterParams = new Set(filter.map((item) => getParamName(item)));
-      Array.from(searchParams.keys()).forEach((name) => {
-        const param = searchParamMap.get(name);
-        if (!param) {
-          // not our concern
-          return;
-        }
-        if (!filterParams.has(name)) {
-          searchParams.delete(name);
-        }
-      });
-
-      filter.forEach((option) => {
-        searchParams.set(getParamName(option), option.value);
-      });
-
-      return searchParams;
-    },
-    [searchParamMap],
-  );
-
-  const writeFilterToUrl = React.useCallback(
-    (inputUrl: string, filter: FilterOption[]): string => {
-      const outputUrl = new URL(inputUrl);
-      writeFilterToSearchParams(outputUrl.searchParams, filter);
-      return outputUrl.href;
-    },
-    [writeFilterToSearchParams],
-  );
-
-  const getKey = React.useCallback(() => {
-    const searchParams = writeFilterToSearchParams(
-      new URLSearchParams(),
-      filter,
-    );
-    return searchParams.toString();
-  }, [filter, writeFilterToSearchParams]);
-
-  const navigate = useNavigate();
-
-  React.useEffect(() => {
-    const newUrl = writeFilterToUrl(window.location.href, filter);
-    navigate(newUrl, { history: "replace" });
-  }, [filter, navigate, writeFilterToUrl]);
-
-  const ctx = React.useMemo(
-    () => ({
-      filter,
-      setFilter,
-      getKey,
-    }),
-    [filter, setFilter, getKey],
-  );
-  return (
-    <FilterContext.Provider value={ctx}>{children}</FilterContext.Provider>
-  );
-}
-
-export function useFilter(): DashboardFilter {
-  return React.useContext(FilterContext);
+export function getKeyFromFilter(filter: FilterOption[]): string {
+  return JSON.stringify(filter);
 }
 
 export interface ExpandedFilter {
@@ -183,32 +53,177 @@ export function flattenFilter(filter: ExpandedFilter): FilterOption[] {
   });
 }
 
-export function useFilterValueState(field: string, operator: string = "eq") {
-  const dashboardFilter = useFilter();
-  const value = React.useMemo(() => {
-    const expanded = expandFilter(dashboardFilter.filter);
-    return expanded[field]?.[operator] ?? null;
-  }, [field, dashboardFilter, operator]);
+export interface Codec<V> {
+  parse: (value: string) => V;
+  stringify: (value: V) => string;
+}
 
-  const setValue = React.useCallback(
-    (newValue: string | null) => {
-      dashboardFilter.setFilter((existing) => {
-        const expanded = expandFilter(existing);
-        expanded[field] ??= {};
-        if (newValue === null) {
-          delete expanded[field][operator];
-        } else {
-          expanded[field][operator] = newValue;
+export type Parameter<V = string> = {
+  kind: "urlQuery";
+  name: string;
+  codec?: Codec<V>;
+  defaultValue?: V;
+};
+
+export type CreateUrlParameterOptions<V> = {
+  codec?: Codec<V>;
+  defaultValue?: V;
+} & (V extends string ? {} : { codec: Codec<V> });
+
+export function createUrlParameter<V = string>(
+  name: string,
+  options: V extends string
+    ? CreateUrlParameterOptions<V> | undefined
+    : CreateUrlParameterOptions<V>,
+): Parameter<V> {
+  return {
+    kind: "urlQuery",
+    name,
+    ...options,
+  };
+}
+
+export function useParameterValues(params: Parameter<any>[]): any {
+  const searchParams = useSearchParams();
+
+  return React.useMemo(() => {
+    return Object.fromEntries(
+      params.map((param) => {
+        const value = searchParams.get(param.name);
+        if (value === null) {
+          return [param.name, param.defaultValue ?? null];
         }
-        const flattened = flattenFilter(expanded);
-        return flattened;
-      });
-    },
-    [field, dashboardFilter, operator],
-  );
+        const parsedValue = param.codec ? param.codec.parse(value) : value;
+        return [param.name, parsedValue];
+      }),
+    );
+  }, [params, searchParams]);
+}
 
-  return [value, setValue] satisfies [
-    string | null,
-    (newValue: string | null) => void,
-  ];
+export function useParameterValue<V>(param: Parameter<V>): V | null {
+  const stableParams = React.useMemo(() => [param], [param]);
+  const values = useParameterValues(stableParams);
+  return values[param.name] ?? null;
+}
+
+export function useSetParameterValues(
+  params: Parameter<any>[],
+): (newValues: any) => void {
+  const navigate = useNavigate();
+  const searchParams = useSearchParams();
+  const paramMap = React.useMemo(
+    () => new Map(params.map((p) => [p.name, p])),
+    [params],
+  );
+  return React.useCallback(
+    (newValues) => {
+      const newParams = new URLSearchParams(searchParams);
+
+      for (const [name, value] of Object.entries(newValues)) {
+        const param = paramMap.get(name);
+        if (!param) {
+          continue;
+        } else if (value === null || value === param.defaultValue) {
+          newParams.delete(name);
+        }
+
+        let stringValue: string = param.codec
+          ? param.codec.stringify(value)
+          : (value as string);
+
+        newParams.set(param.name, stringValue);
+      }
+      console.log(" navigating to: ", `?${newParams.toString()}`);
+      navigate(`?${newParams.toString()}`, { history: "replace" });
+    },
+    [navigate, paramMap, searchParams],
+  );
+}
+
+export function useSetParameterValue<V>(
+  param: Parameter<V>,
+): (value: V | null) => void {
+  const stableParams = React.useMemo(() => [param], [param]);
+  const setValues = useSetParameterValues(stableParams);
+  return React.useCallback(
+    (value: V | null) => {
+      setValues({ [param.name]: value });
+    },
+    [param.name, setValues],
+  );
+}
+
+export type FilterOperatorBinding<R extends ValidDatum> = {
+  [field in keyof R]: {
+    [operator: string]: Parameter;
+  };
+};
+
+export type FilterBinding<R extends ValidDatum> = [
+  ResolvedDataProvider<R>,
+  FilterOperatorBinding<R>,
+];
+
+const FilterBindingContext = React.createContext<FilterBinding<any>[]>([]);
+
+export interface FilterBindingProviderProps {
+  children?: React.ReactNode;
+  bindings: FilterBinding<any>[];
+}
+
+export function FilterBindingProvider({
+  children,
+  bindings,
+}: FilterBindingProviderProps) {
+  return (
+    <FilterBindingContext.Provider value={bindings}>
+      {children}
+    </FilterBindingContext.Provider>
+  );
+}
+
+interface FilterBindingOptions {
+  field: string;
+  operator: string;
+  parameter: Parameter<any>;
+}
+
+function flattenFilterBinding(
+  filter: FilterOperatorBinding<any>,
+): FilterBindingOptions[] {
+  return Object.entries(filter).flatMap(([field, operators]) => {
+    return Object.entries(operators).map(([operator, parameter]) => ({
+      field,
+      operator,
+      parameter,
+    }));
+  });
+}
+
+export function useAppliedFilter(
+  dataProvider: ResolvedDataProvider<any>,
+): FilterOption[] {
+  const bindings = React.useContext(FilterBindingContext);
+
+  const flat = React.useMemo(() => {
+    const providerbinding = bindings.find(([dp]) => dp === dataProvider);
+    const dataProviderbindings = providerbinding ? providerbinding[1] : {};
+    return dataProviderbindings
+      ? flattenFilterBinding(dataProviderbindings)
+      : [];
+  }, [bindings, dataProvider]);
+
+  const parameterValues = useParameterValues(flat.map((f) => f.parameter));
+
+  const filter: FilterOption[] = React.useMemo(() => {
+    const flatFilter = flat.map((option) => ({
+      field: option.field,
+      operator: option.operator,
+      value: parameterValues[option.parameter.name],
+    }));
+
+    return flatFilter;
+  }, [flat, parameterValues]);
+
+  return filter;
 }

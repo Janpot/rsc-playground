@@ -24,7 +24,6 @@ export interface DataGridProps<R extends GridValidRowModel>
 }
 
 function getRowId(row: any) {
-  console.log("row", row);
   return Object.prototype.hasOwnProperty.call(row, "id") ? row.id : row._index;
 }
 
@@ -103,7 +102,7 @@ export function DataGrid<R extends GridValidRowModel>({
         {...props}
       />
       {error ? (
-        <CardSurface>
+        <CardSurface sx={{ position: "absolute", inset: "0 0 0 0" }}>
           <ErrorOverlay error={error} />
         </CardSurface>
       ) : null}
