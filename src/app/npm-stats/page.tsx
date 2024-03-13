@@ -8,7 +8,6 @@ import {
   ParameterSelect,
   LineChart,
   LineChartProps,
-  createDataProvider,
 } from "@/lib/dash/client";
 import { Box, Container, Stack, Typography } from "@mui/material";
 import {
