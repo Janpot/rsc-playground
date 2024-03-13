@@ -7,7 +7,7 @@ import {
   AxisConfig,
 } from "@mui/x-charts";
 import { Box, Paper, Typography, styled } from "@mui/material";
-import { Datum, ResolvedDataProvider, useDataProviderGetMany } from "../data";
+import { Datum, ResolvedDataProvider, useGetMany } from "../data";
 import { CardSurface, ErrorOverlay, LoadingOverlay } from "../components";
 
 export interface LineChartProps<R extends Datum> extends XLineChartProps {
@@ -21,7 +21,7 @@ export function LineChart<R extends Datum>({
   xAxis,
   series,
 }: LineChartProps<R>) {
-  const { data, isLoading, error } = useDataProviderGetMany(dataProvider);
+  const { data, isLoading, error } = useGetMany(dataProvider);
 
   const fieldsMap = React.useMemo(() => {
     return new Map(dataProvider.fields.map((field) => [field.field, field]));

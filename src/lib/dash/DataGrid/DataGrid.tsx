@@ -13,18 +13,17 @@ import {
   ResolvedDataProvider,
   ResolvedField,
   Datum,
-  useDataProviderGetMany,
+  useGetMany,
 } from "../data";
 import { CardSurface, ErrorOverlay } from "../components";
 
 export interface DataGridProps<R extends GridValidRowModel>
-  extends Pick<DataGridProProps<R>, "pagination" | "autoPageSize"> {
+  extends Pick<
+    DataGridProProps<R>,
+    "getRowId" | "pagination" | "autoPageSize" | "onRowClick"
+  > {
   columns?: readonly GridColDef<R>[];
   dataProvider: ResolvedDataProvider<R>;
-}
-
-function getRowId(row: any) {
-  return Object.prototype.hasOwnProperty.call(row, "id") ? row.id : row._index;
 }
 
 function dateValueGetter({ value }: GridValueGetterParams): Date | undefined {
@@ -48,49 +47,64 @@ function wrapWithDateValueGetter(valueGetter?: GridColDef["valueGetter"]) {
 
 function getColumnsFromFields<R extends Datum>(
   fields: ResolvedField<R>[],
+  columnsProp?: readonly GridColDef<R>[],
 ): readonly GridColDef<R>[] {
-  return fields.map((field) => {
-    const colDef: GridColDef<R> = {
-      field: field.field,
-      type: field.type,
-      headerName: field.label,
-    };
-    const valueFormatter = field.valueFormatter;
-    if (valueFormatter) {
-      colDef.valueFormatter = valueFormatter;
+  const resolvedColumns =
+    columnsProp ??
+    fields.map((field) => {
+      const colDef: GridColDef<R> = {
+        field: field.field,
+        type: field.type,
+        headerName: field.label,
+      };
+      const valueFormatter = field.valueFormatter;
+      if (valueFormatter) {
+        colDef.valueFormatter = valueFormatter;
+      }
+      return colDef;
+    });
+
+  return resolvedColumns.map((column) => {
+    let valueGetter = column.valueGetter;
+
+    if (column.type === "date" || column.type === "dateTime") {
+      valueGetter = wrapWithDateValueGetter(valueGetter);
     }
-    return colDef;
+
+    return {
+      ...column,
+      valueGetter,
+    };
   });
 }
 
 export function DataGrid<R extends GridValidRowModel>({
   dataProvider,
   columns: columnsProp,
+  getRowId: getRowIdProp,
   ...props
 }: DataGridProps<R>) {
-  const { data, isLoading, error } = useDataProviderGetMany(dataProvider);
+  const { data, loading, error } = useGetMany(dataProvider);
 
-  const columns = React.useMemo(() => {
-    const resolvedColumns: readonly GridColDef[] =
-      columnsProp ?? getColumnsFromFields(dataProvider.fields);
-
-    return resolvedColumns.map((column) => {
-      let valueGetter = column.valueGetter;
-
-      if (column.type === "date" || column.type === "dateTime") {
-        valueGetter = wrapWithDateValueGetter(valueGetter);
-      }
-
-      return {
-        ...column,
-        valueGetter,
-      };
-    });
-  }, [columnsProp, dataProvider.fields]);
+  const columns = React.useMemo(
+    () => getColumnsFromFields(dataProvider.fields, columnsProp),
+    [columnsProp, dataProvider.fields],
+  );
 
   const rows = React.useMemo(() => {
     return data?.rows.map((row, index) => ({ ...row, _index: index })) ?? [];
   }, [data]);
+
+  const getRowId = React.useMemo(() => {
+    return (
+      getRowIdProp ??
+      ((row: any) => {
+        return Object.prototype.hasOwnProperty.call(row, "id")
+          ? row.id
+          : row._index;
+      })
+    );
+  }, [getRowIdProp]);
 
   return (
     <Box sx={{ height: 400, position: "relative" }}>
@@ -98,7 +112,7 @@ export function DataGrid<R extends GridValidRowModel>({
         getRowId={getRowId}
         rows={rows}
         columns={columns}
-        loading={isLoading}
+        loading={loading}
         {...props}
       />
       {error ? (

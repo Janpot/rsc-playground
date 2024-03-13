@@ -1,8 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { use } from "react";
 import { DataGrid } from "../DataGrid";
-import { ResolvedDataProvider, Datum } from "../data";
+import {
+  ResolvedDataProvider,
+  Datum,
+  useGetOne,
+  useCreateOne,
+  useUpdateOne,
+} from "../data";
 import {
   Box,
   Breadcrumbs,
@@ -24,6 +30,10 @@ import { ArrowBack } from "@mui/icons-material";
 import { useMutation } from "@tanstack/react-query";
 import { Controller, DefaultValues, Path, useForm } from "react-hook-form";
 import { LoadingButton } from "@mui/lab";
+import { useNavigate } from "../navigation";
+import Grid2 from "@mui/material/Unstable_Grid2/Grid2";
+import { GridEventListener } from "@mui/x-data-grid-pro";
+import { ErrorOverlay, LoadingOverlay } from "../components";
 
 const CrudContext = React.createContext<{
   dataProvider: ResolvedDataProvider<any>;
@@ -123,6 +133,13 @@ interface ListPageProps {}
 
 function ListPage({}: ListPageProps) {
   const { basePath, name, dataProvider } = useCrudContext();
+  const navigate = useNavigate();
+  const handleRowClick = React.useCallback<GridEventListener<"rowClick">>(
+    ({ id }) => {
+      navigate(`${basePath}/show/${id}`);
+    },
+    [basePath, navigate],
+  );
   return (
     <Box>
       <Toolbar disableGutters>
@@ -136,44 +153,34 @@ function ListPage({}: ListPageProps) {
           </Button>
         </Box>
       </Toolbar>
-      <DataGrid dataProvider={dataProvider} />
+      <DataGrid dataProvider={dataProvider} onRowClick={handleRowClick} />
     </Box>
   );
 }
 
-interface NewPageProps {}
+interface Mutation<R> {
+  pending: boolean;
+  mutate: (data: R) => void;
+}
 
-function NewPage<R extends Datum>({}: NewPageProps) {
-  const { name, basePath, dataProvider } = useCrudContext();
-  const { mutate, isPending } = useMutation({
-    async mutationFn(data: any) {
-      invariant(dataProvider.createOne, "createOne not implemented");
-      await dataProvider.createOne(data);
-    },
-  });
+interface DataEditorProps<R extends Datum> {
+  value?: R;
+  mutation: Mutation<R>;
+}
+
+function DataEditor<R extends Datum>({ value, mutation }: DataEditorProps<R>) {
+  const { dataProvider } = useCrudContext();
+
   const { control, handleSubmit } = useForm<R>({
     defaultValues: Object.fromEntries(
       dataProvider.fields.map((field) => {
-        return [field.field, ""];
+        return [field.field, value?.[field.field] ?? ""];
       }),
     ) as DefaultValues<R>,
   });
-  const onSubmit = (values: R) => {
-    mutate(values);
-  };
+
   return (
-    <Box component="form" onSubmit={handleSubmit(onSubmit)}>
-      <CrudBreadcrumbs segments={["New"]} />
-      <Toolbar disableGutters>
-        <Stack direction="row" spacing={2}>
-          <IconButton component={NextLink} href={basePath}>
-            <ArrowBack />
-          </IconButton>
-          <Typography variant="h4" component="h1">
-            New
-          </Typography>
-        </Stack>
-      </Toolbar>
+    <Box component="form" onSubmit={handleSubmit(mutation.mutate)}>
       <Stack direction="column" spacing={2}>
         {dataProvider.fields.map((field) => {
           return (
@@ -209,9 +216,15 @@ function NewPage<R extends Datum>({}: NewPageProps) {
           );
         })}
       </Stack>
+
       <Toolbar disableGutters>
         <Box sx={{ flexGrow: 1 }} />
-        <LoadingButton variant="contained" color="primary" loading={isPending}>
+        <LoadingButton
+          type="submit"
+          variant="contained"
+          color="primary"
+          loading={mutation.pending}
+        >
           Save
         </LoadingButton>
       </Toolbar>
@@ -219,16 +232,119 @@ function NewPage<R extends Datum>({}: NewPageProps) {
   );
 }
 
+interface NewPageProps {}
+
+function NewPage<R extends Datum>({}: NewPageProps) {
+  const { basePath, dataProvider } = useCrudContext();
+  const createMutation = useCreateOne(dataProvider);
+  return (
+    <Box>
+      <Toolbar disableGutters>
+        <Stack direction="row" spacing={2}>
+          <IconButton component={NextLink} href={basePath}>
+            <ArrowBack />
+          </IconButton>
+          <Typography variant="h4" component="h1">
+            New
+          </Typography>
+        </Stack>
+      </Toolbar>
+      <CrudBreadcrumbs segments={["New"]} />
+      <Box sx={{ my: 4 }}>
+        <DataEditor mutation={createMutation} />
+      </Box>
+    </Box>
+  );
+}
+
+interface AsyncContentProps {
+  error?: Error | null;
+  loading?: boolean;
+  renderContent: () => React.ReactNode;
+}
+
+function AsyncContent({ error, loading, renderContent }: AsyncContentProps) {
+  if (error) {
+    return <ErrorOverlay error={error} />;
+  }
+  if (loading) {
+    return <LoadingOverlay />;
+  }
+  return renderContent();
+}
+
+interface NoDataFoundOverlayProps {
+  id: string;
+}
+
+function NoDataFoundOverlay({ id }: NoDataFoundOverlayProps) {
+  const error = React.useMemo(
+    () => new Error(`No data found with id "${id}"`),
+    [id],
+  );
+  return <ErrorOverlay error={error} />;
+}
+
 interface ShowPageProps {
   id: string;
 }
 
 function ShowPage({ id }: ShowPageProps) {
-  const { name, dataProvider } = useCrudContext();
+  const { basePath, name, dataProvider } = useCrudContext();
+  const { data, error, loading } = useGetOne(dataProvider, id);
   return (
     <Box>
+      <Toolbar disableGutters>
+        <Stack direction="row" spacing={2}>
+          <IconButton component={NextLink} href={basePath}>
+            <ArrowBack />
+          </IconButton>
+          <Typography variant="h4" component="h1">
+            Show
+          </Typography>
+        </Stack>
+        <Box sx={{ flexGrow: 1 }} />
+        <Box>
+          <Button color="error">Delete</Button>
+          <Button component={NextLink} href={`${basePath}/edit/${id}`}>
+            Edit
+          </Button>
+        </Box>
+      </Toolbar>
       <CrudBreadcrumbs segments={["Show", id]} />
-      <Typography>New</Typography>
+      <Box sx={{ my: 4 }}>
+        <AsyncContent
+          error={error}
+          loading={loading}
+          renderContent={() => {
+            if (!data) {
+              return <NoDataFoundOverlay id={id} />;
+            }
+            return (
+              <Stack direction="column" spacing={2}>
+                {dataProvider.fields.map((field) => {
+                  let value = data[field.field];
+                  if (field.valueFormatter) {
+                    value = field.valueFormatter(value);
+                  }
+                  return (
+                    <Grid2 container key={field.field} spacing={2}>
+                      <Grid2 xs={3}>
+                        <Typography align="right">
+                          {field.label ?? field.field}:
+                        </Typography>
+                      </Grid2>
+                      <Grid2 xs={9}>
+                        <Typography>{String(value)}</Typography>
+                      </Grid2>
+                    </Grid2>
+                  );
+                })}
+              </Stack>
+            );
+          }}
+        />
+      </Box>
     </Box>
   );
 }
@@ -238,11 +354,34 @@ interface EditPageProps {
 }
 
 function EditPage({ id }: EditPageProps) {
-  const { name, dataProvider } = useCrudContext();
+  const { basePath, name, dataProvider } = useCrudContext();
+  const { data, error, loading } = useGetOne(dataProvider, id);
+  const updateMutation = useUpdateOne(dataProvider, id);
   return (
     <Box>
-      <CrudBreadcrumbs segments={["New", id]} />
-      <Typography>New</Typography>
+      <Toolbar disableGutters>
+        <Stack direction="row" spacing={2}>
+          <IconButton component={NextLink} href={`${basePath}/show/${id}`}>
+            <ArrowBack />
+          </IconButton>
+          <Typography variant="h4" component="h1">
+            Edit
+          </Typography>
+        </Stack>
+      </Toolbar>
+      <CrudBreadcrumbs segments={["Edit", id]} />
+      <Box sx={{ my: 4 }}>
+        <AsyncContent
+          error={error}
+          loading={loading}
+          renderContent={() => {
+            if (!data) {
+              return <NoDataFoundOverlay id={id} />;
+            }
+            return <DataEditor value={data} mutation={updateMutation} />;
+          }}
+        />
+      </Box>
     </Box>
   );
 }
