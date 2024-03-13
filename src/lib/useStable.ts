@@ -42,7 +42,9 @@ type ExtractType<
 function getStable<S extends SchemaNode<any>, V extends InferType<S>>(
   schema: S,
   value: V,
-): ExtractType<S, V> {}
+): ExtractType<S, V> {
+  return value as any;
+}
 
 function createSchema<S extends SchemaNode<any>>(input: S): S {
   return input;
