@@ -141,7 +141,6 @@ export const monthlyStats = createDataProvider({
   async getMany(...params) {
     const result = await dailyStats.getMany(...params);
 
-    // @ts-expect-error
     const grouped = Object.groupBy(result.rows, (item: any) =>
       dayjs(item.day).format("YYYY-MM"),
     );
