@@ -49,7 +49,7 @@ export function Metric<R extends Datum>({
   field,
   aggregation = "latest",
 }: MetricProps<R>) {
-  const { data, isLoading, error } = useGetMany(dataProvider);
+  const { data, loading, error } = useGetMany(dataProvider);
 
   const fieldDef = React.useMemo(() => {
     return dataProvider.fields.find((f) => f.field === field);
@@ -78,7 +78,7 @@ export function Metric<R extends Datum>({
     <CardSurface sx={{ padding: 2 }}>
       <Typography>{label ?? fieldDef?.label ?? field}</Typography>
       <Typography variant="h6">{formattedValue}</Typography>
-      {isLoading ? <LoadingOverlay /> : null}
+      {loading ? <LoadingOverlay /> : null}
       {error ? <ErrorOverlay error={error} /> : null}
     </CardSurface>
   );

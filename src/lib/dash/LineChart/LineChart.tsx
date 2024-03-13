@@ -21,7 +21,7 @@ export function LineChart<R extends Datum>({
   xAxis,
   series,
 }: LineChartProps<R>) {
-  const { data, isLoading, error } = useGetMany(dataProvider);
+  const { data, loading, error } = useGetMany(dataProvider);
 
   const fieldsMap = React.useMemo(() => {
     return new Map(dataProvider.fields.map((field) => [field.field, field]));
@@ -70,11 +70,13 @@ export function LineChart<R extends Datum>({
   const rows = React.useMemo(() => {
     const resolvedRows = data?.rows ?? [];
     return resolvedRows.map((row, i) => {
-      const result = {
+      // @ts-expect-error TODO better types of R
+      const result: NonNullable<XLineChartProps["dataset"]>[number] = {
         ...row,
       };
       for (const field of dataProvider.fields) {
         if (field.type === "date") {
+          // @ts-expect-error TODO better types of R
           result[field.field] = new Date(row[field.field]);
         }
       }
@@ -96,7 +98,7 @@ export function LineChart<R extends Datum>({
           series={resolvedSeries}
           height={300}
         />
-        {isLoading ? <LoadingOverlay /> : null}
+        {loading ? <LoadingOverlay /> : null}
         {error ? <ErrorOverlay error={error} /> : null}
       </Box>
     </CardSurface>

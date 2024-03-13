@@ -19,15 +19,15 @@ export function PieChart<R extends Datum>({
   label,
   title,
 }: PieChartProps<R>) {
-  const { data, isLoading, error } = useGetMany(dataProvider);
+  const { data, loading, error } = useGetMany(dataProvider);
 
   const series = React.useMemo(() => {
     const rows = data?.rows ?? [];
 
     const seriesData = rows.map((row) => ({
-      id: row._index,
-      value: row[dimension],
-      label: row[label],
+      // id: String(row._index),
+      value: Number(row[dimension]),
+      label: String(row[label]),
     }));
     return [{ data: seriesData }];
   }, [data, dimension, label]);
@@ -41,7 +41,7 @@ export function PieChart<R extends Datum>({
       ) : null}
       <Box sx={{ position: "relative" }}>
         <XPieChart series={series} height={300} />
-        {isLoading ? <LoadingOverlay /> : null}
+        {loading ? <LoadingOverlay /> : null}
         {error ? <ErrorOverlay error={error} /> : null}
       </Box>
     </CardSurface>
