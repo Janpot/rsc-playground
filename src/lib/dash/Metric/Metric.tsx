@@ -52,7 +52,7 @@ export function Metric<R extends Datum>({
   const { data, loading, error } = useGetMany(dataProvider);
 
   const fieldDef = React.useMemo(() => {
-    return dataProvider.fields.find((f) => f.field === field);
+    return dataProvider.fields[field];
   }, [dataProvider.fields, field]);
 
   const value = React.useMemo(() => {
@@ -68,11 +68,11 @@ export function Metric<R extends Datum>({
     if (fieldDef?.valueFormatter) {
       return fieldDef.valueFormatter({
         value: numberValue,
-        field: fieldDef.field,
+        field,
       });
     }
     return numberFormat.format(numberValue);
-  }, [fieldDef, value]);
+  }, [field, fieldDef, value]);
 
   return (
     <CardSurface sx={{ padding: 2 }}>

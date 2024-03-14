@@ -21,7 +21,6 @@ export function createConnection(connectionString: string) {
           if (!columns.has(field)) {
             columns.set(field, {
               type: "string",
-              field,
               label: pgField.name,
             });
           }

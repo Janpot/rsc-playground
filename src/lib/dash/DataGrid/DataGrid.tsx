@@ -17,7 +17,7 @@ import {
 } from "../data";
 import { CardSurface, ErrorOverlay } from "../components";
 
-export interface DataGridProps<R extends GridValidRowModel>
+export interface DataGridProps<R extends Datum>
   extends Pick<
     DataGridProProps<R>,
     "getRowId" | "pagination" | "autoPageSize" | "onRowClick"
@@ -46,14 +46,14 @@ function wrapWithDateValueGetter(valueGetter?: GridColDef["valueGetter"]) {
 }
 
 function getColumnsFromFields<R extends Datum>(
-  fields: ResolvedField<R>[],
+  fields: { [K in keyof R & string]: Omit<ResolvedField<R, K>, "field"> },
   columnsProp?: readonly GridColDef<R>[],
 ): readonly GridColDef<R>[] {
   const resolvedColumns =
     columnsProp ??
-    fields.map((field) => {
+    Object.entries(fields).map(([name, field]) => {
       const colDef: GridColDef<R> = {
-        field: field.field,
+        field: name,
         type: field.type,
         headerName: field.label,
       };
@@ -78,7 +78,7 @@ function getColumnsFromFields<R extends Datum>(
   });
 }
 
-export function DataGrid<R extends GridValidRowModel>({
+export function DataGrid<R extends Datum>({
   dataProvider,
   columns: columnsProp,
   getRowId: getRowIdProp,

@@ -43,22 +43,21 @@ export const employees = createDataProvider<Employee>({
   async getOne(id) {
     return DATA.find((row) => row.id === Number(id)) ?? null;
   },
-  fields: [
-    {
-      field: "name",
+  fields: {
+    name: {
+      label: "Name",
     },
-    {
-      field: "age",
+    age: {
+      label: "Age",
       type: "number",
     },
-    {
-      field: "active",
+    active: {
+      label: "Active",
       type: "boolean",
     },
-    {
-      field: "lastContacted",
+    lastContacted: {
       label: "Last Contacted",
       type: "date",
     },
-  ],
+  },
 });

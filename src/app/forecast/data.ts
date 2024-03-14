@@ -15,6 +15,7 @@ export const CITIES = new Map([
 ]);
 
 export type WeatherDatum = {
+  id: string;
   time: string;
   temperature: number;
   wind: number;
@@ -67,7 +68,8 @@ export const forecast = createDataProvider<WeatherDatum>({
         const date = dayjs(item.time);
         return date.isAfter(now) && date.isBefore(tomorrow);
       })
-      .map((item: any) => ({
+      .map((item: any, index: number) => ({
+        id: index,
         time: item.time,
         temperature: item.data?.instant?.details?.air_temperature,
         wind: item.data?.instant?.details?.wind_speed,
@@ -79,35 +81,30 @@ export const forecast = createDataProvider<WeatherDatum>({
 
     return { rows };
   },
-  fields: [
-    {
-      field: "time",
+  fields: {
+    time: {
       label: "Time",
       type: "date",
     },
-    {
-      field: "temperature",
+    temperature: {
       label: "Temperature",
       type: "number",
       valueFormatter: ({ value }) => `${numberFormat.format(Number(value))}°C`,
     },
-    {
-      field: "wind",
+    wind: {
       label: "Wind",
       type: "number",
       valueFormatter: ({ value }) => `${numberFormat.format(Number(value))}m/s`,
     },
-    {
-      field: "windDir",
+    windDir: {
       label: "Wind Direction",
       type: "number",
       valueFormatter: ({ value }) => `${numberFormat.format(Number(value))}°`,
     },
-    {
-      field: "precipitation",
+    precipitation: {
       label: "Precipitation",
       type: "number",
       valueFormatter: ({ value }) => `${numberFormat.format(Number(value))}mm`,
     },
-  ],
+  },
 });

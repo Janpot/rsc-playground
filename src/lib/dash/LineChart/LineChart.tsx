@@ -22,17 +22,12 @@ export function LineChart<R extends Datum>({
   series,
 }: LineChartProps<R>) {
   const { data, loading, error } = useGetMany(dataProvider);
-
-  const fieldsMap = React.useMemo(() => {
-    return new Map(dataProvider.fields.map((field) => [field.field, field]));
-  }, [dataProvider.fields]);
-
   const resolvedXAxis = React.useMemo(() => {
     return (
       xAxis?.map((axis) => {
         let defaults: Partial<AxisConfig> = {};
         if (axis.dataKey) {
-          const field = fieldsMap.get(axis.dataKey);
+          const field = dataProvider.fields[axis.dataKey];
           if (field) {
             defaults = {
               label: field.label,
@@ -45,13 +40,14 @@ export function LineChart<R extends Datum>({
         return { ...defaults, ...axis };
       }) ?? []
     );
-  }, [xAxis, fieldsMap]);
+  }, [dataProvider.fields, xAxis]);
 
   const resolvedSeries = React.useMemo(() => {
     return series.map((s) => {
       let defaults: Partial<XLineChartProps["series"][number]> = {};
       if (s.dataKey) {
-        const field = fieldsMap.get(s.dataKey);
+        const name = s.dataKey;
+        const field = dataProvider.fields[name];
         if (field) {
           defaults = {
             label: field.label,
@@ -59,13 +55,13 @@ export function LineChart<R extends Datum>({
           const valueFormatter = field.valueFormatter;
           if (valueFormatter) {
             defaults.valueFormatter = (value: any) =>
-              valueFormatter({ value, field: field.field });
+              valueFormatter({ value, field: name });
           }
         }
       }
       return { ...defaults, ...s };
     });
-  }, [series, fieldsMap]);
+  }, [series, dataProvider.fields]);
 
   const rows = React.useMemo(() => {
     const resolvedRows = data?.rows ?? [];
@@ -74,10 +70,10 @@ export function LineChart<R extends Datum>({
       const result: NonNullable<XLineChartProps["dataset"]>[number] = {
         ...row,
       };
-      for (const field of dataProvider.fields) {
+      for (const [name, field] of Object.entries(dataProvider.fields)) {
         if (field.type === "date") {
           // @ts-expect-error TODO better types of R
-          result[field.field] = new Date(row[field.field]);
+          result[name] = new Date(row[name]);
         }
       }
       return result;

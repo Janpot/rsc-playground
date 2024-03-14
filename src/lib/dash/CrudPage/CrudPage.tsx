@@ -8,6 +8,8 @@ import {
   useGetOne,
   useCreateOne,
   useUpdateOne,
+  FieldDef,
+  Mutation,
 } from "../data";
 import {
   Box,
@@ -27,7 +29,6 @@ import NextLink from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import invariant from "invariant";
 import { ArrowBack } from "@mui/icons-material";
-import { useMutation } from "@tanstack/react-query";
 import { Controller, DefaultValues, Path, useForm } from "react-hook-form";
 import { LoadingButton } from "@mui/lab";
 import { useNavigate } from "../navigation";
@@ -84,19 +85,6 @@ function parseMethod(methodParam?: string | string[]): ParsedMethod | null {
   }
 
   return null;
-}
-
-function getMethodLabel(method: ParsedMethod) {
-  switch (method.kind) {
-    case "list":
-      return "List";
-    case "new":
-      return "New";
-    case "edit":
-      return "Edit";
-    case "show":
-      return "Show";
-  }
 }
 
 interface CrudBreadcrumbsProps {
@@ -158,35 +146,53 @@ function ListPage({}: ListPageProps) {
   );
 }
 
-interface Mutation<R> {
-  pending: boolean;
-  mutate: (data: R) => void;
-}
-
 interface DataEditorProps<R extends Datum> {
   value?: R;
   mutation: Mutation<R>;
 }
 
+function getDefaultFieldValue(field?: FieldDef<any, any>): any {
+  switch (field?.type) {
+    case "string":
+      return "";
+    case "number":
+      return 0;
+    case "boolean":
+      return false;
+    case "date":
+      return new Date().toISOString().split("T")[0];
+  }
+  return "";
+}
+
 function DataEditor<R extends Datum>({ value, mutation }: DataEditorProps<R>) {
-  const { dataProvider } = useCrudContext();
+  const { basePath, dataProvider } = useCrudContext();
+  const navigate = useNavigate();
 
   const { control, handleSubmit } = useForm<R>({
     defaultValues: Object.fromEntries(
-      dataProvider.fields.map((field) => {
-        return [field.field, value?.[field.field] ?? ""];
+      Object.entries(dataProvider.fields ?? {}).map(([name, field]) => {
+        return [name, value?.[name] ?? getDefaultFieldValue(field)];
       }),
     ) as DefaultValues<R>,
   });
 
+  const onsubMit = React.useCallback(
+    async (data: R) => {
+      const newRecord = await mutation.mutate(data);
+      navigate(`${basePath}/show/${newRecord.id}`);
+    },
+    [basePath, mutation, navigate],
+  );
+
   return (
-    <Box component="form" onSubmit={handleSubmit(mutation.mutate)}>
+    <Box component="form" onSubmit={handleSubmit(onsubMit)}>
       <Stack direction="column" spacing={2}>
-        {dataProvider.fields.map((field) => {
+        {Object.entries(dataProvider.fields ?? {}).map(([name, field]) => {
           return (
             <Controller
-              key={field.field}
-              name={field.field as Path<R>}
+              key={name}
+              name={name as Path<R>}
               control={control}
               render={(params) => {
                 switch (field.type) {
@@ -322,24 +328,26 @@ function ShowPage({ id }: ShowPageProps) {
             }
             return (
               <Stack direction="column" spacing={2}>
-                {dataProvider.fields.map((field) => {
-                  let value = data[field.field];
-                  if (field.valueFormatter) {
-                    value = field.valueFormatter(value);
-                  }
-                  return (
-                    <Grid2 container key={field.field} spacing={2}>
-                      <Grid2 xs={3}>
-                        <Typography align="right">
-                          {field.label ?? field.field}:
-                        </Typography>
+                {Object.entries(dataProvider.fields ?? {}).map(
+                  ([name, field]) => {
+                    let value = data[name];
+                    if (field.valueFormatter) {
+                      value = field.valueFormatter(value);
+                    }
+                    return (
+                      <Grid2 container key={name} spacing={2}>
+                        <Grid2 xs={3}>
+                          <Typography align="right">
+                            {field.label ?? name}:
+                          </Typography>
+                        </Grid2>
+                        <Grid2 xs={9}>
+                          <Typography>{String(value)}</Typography>
+                        </Grid2>
                       </Grid2>
-                      <Grid2 xs={9}>
-                        <Typography>{String(value)}</Typography>
-                      </Grid2>
-                    </Grid2>
-                  );
-                })}
+                    );
+                  },
+                )}
               </Stack>
             );
           }}

@@ -76,6 +76,7 @@ export const dailyStats = createDataProvider({
       const reactDomDownloadsCount: number = reactDomDownloads[i].downloads;
 
       return {
+        id: item.day,
         day: new Date(item.day),
         muiMaterialDownloadsCount,
         materialUiCoreDownloadsCount,
@@ -96,40 +97,34 @@ export const dailyStats = createDataProvider({
       rows: aggregated,
     };
   },
-  fields: [
-    {
-      field: "day",
+  fields: {
+    day: {
       label: "Day",
       type: "date",
     },
-    {
-      field: "muiMaterialDownloadsCount",
+    muiMaterialDownloadsCount: {
       label: "@mui/material",
       type: "number",
     },
-    {
-      field: "materialUiCoreDownloadsCount",
+    materialUiCoreDownloadsCount: {
       label: "@material-ui/core",
       type: "number",
     },
-    {
-      field: "baseUiDownloadsCount",
+    baseUiDownloadsCount: {
       label: "@mui/base",
       type: "number",
     },
-    {
-      field: "coreMarketShare",
+    coreMarketShare: {
       label: "core Market Share",
       type: "number",
       valueFormatter: percentFormatter,
     },
-    {
-      field: "baseUiMarketShare",
+    baseUiMarketShare: {
       label: "base Market Share",
       type: "number",
       valueFormatter: percentFormatter,
     },
-  ],
+  },
 });
 
 function arraySum(arr: number[]) {
@@ -146,7 +141,8 @@ export const monthlyStats = createDataProvider({
     );
 
     const byMonth = (Object.entries(grouped) as [string, any[]][]).map(
-      ([day, items]) => {
+      ([month, items]) => {
+        const day = dayjs(month).format("YYYY-MM-DD");
         const muiMaterialDownloadsCount = arraySum(
           items.map((item) => item.muiMaterialDownloadsCount),
         );
@@ -161,7 +157,8 @@ export const monthlyStats = createDataProvider({
         );
 
         return {
-          day: dayjs(day).format("YYYY-MM-DD"),
+          id: day,
+          day,
 
           muiMaterialDownloadsCount,
           materialUiCoreDownloadsCount,
