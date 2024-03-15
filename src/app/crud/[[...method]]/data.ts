@@ -35,13 +35,28 @@ export const employees = createDataProvider<Employee>({
       rows: DATA,
     };
   },
+  async getOne(id) {
+    return DATA.find((row) => row.id === Number(id)) ?? null;
+  },
   async createOne(values) {
     const newRow = { ...values, id: getNextId() };
     DATA.push(newRow);
     return newRow;
   },
-  async getOne(id) {
-    return DATA.find((row) => row.id === Number(id)) ?? null;
+  async updateOne(id, values) {
+    const index = DATA.findIndex((row) => row.id === Number(id));
+    if (index < 0) {
+      throw new Error(`Employee with id ${id} not found`);
+    }
+
+    DATA[index] = { ...DATA[index], ...values };
+    return DATA[index];
+  },
+  async deleteOne(id) {
+    const index = DATA.findIndex((row) => row.id === Number(id));
+    if (index >= 0) {
+      DATA.splice(index, 1);
+    }
   },
   fields: {
     name: {

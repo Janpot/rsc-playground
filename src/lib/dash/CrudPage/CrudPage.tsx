@@ -20,6 +20,9 @@ import {
   Checkbox,
   Container,
   Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControlLabel,
   IconButton,
   Link,
@@ -313,12 +316,47 @@ interface ShowPageProps {
 }
 
 function ShowPage({ id }: ShowPageProps) {
+  const navigate = useNavigate();
   const { basePath, name, dataProvider } = useCrudContext();
   const { data, error, loading } = useGetOne(dataProvider, id);
   const deleteMutation = useDeleteOne(dataProvider);
+  const [openDeleteConfirm, setOpenDeleteConfirm] = React.useState(false);
+  const handleCancelClick = React.useCallback(() => {
+    deleteMutation.reset();
+    setOpenDeleteConfirm(false);
+  }, [deleteMutation]);
+  const handleDeleteClick = React.useCallback(() => {
+    setOpenDeleteConfirm(true);
+  }, [setOpenDeleteConfirm]);
+  const handleDeleteConfirmClick = React.useCallback(async () => {
+    try {
+      await deleteMutation.mutate(id);
+      setOpenDeleteConfirm(false);
+      navigate(basePath);
+    } catch {}
+  }, [basePath, deleteMutation, id, navigate]);
 
   return (
     <Box>
+      <Dialog maxWidth="xs" open={openDeleteConfirm}>
+        <DialogTitle>Delete {id}</DialogTitle>
+        <DialogContent>
+          Are you sure you want to delete the item with id {id}?
+          {deleteMutation.error ? (
+            <Alert color="error" onClose={() => deleteMutation.reset()}>
+              {deleteMutation.error.message}
+            </Alert>
+          ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button autoFocus onClick={handleCancelClick}>
+            Cancel
+          </Button>
+          <Button color="error" onClick={handleDeleteConfirmClick}>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Toolbar disableGutters>
         <Stack direction="row" spacing={2}>
           <IconButton component={NextLink} href={basePath}>
@@ -330,7 +368,9 @@ function ShowPage({ id }: ShowPageProps) {
         </Stack>
         <Box sx={{ flexGrow: 1 }} />
         <Box>
-          <Button color="error">Delete</Button>
+          <Button color="error" onClick={handleDeleteClick}>
+            Delete
+          </Button>
           <Button component={NextLink} href={`${basePath}/edit/${id}`}>
             Edit
           </Button>
