@@ -63,17 +63,25 @@ export function LineChart<R extends Datum>({
     });
   }, [series, dataProvider.fields]);
 
-  const rows = React.useMemo(() => {
+  const dataSet = React.useMemo(() => {
     const resolvedRows = data?.rows ?? [];
     return resolvedRows.map((row, i) => {
-      // @ts-expect-error TODO better types of R
-      const result: NonNullable<XLineChartProps["dataset"]>[number] = {
-        ...row,
-      };
+      const result: NonNullable<XLineChartProps["dataset"]>[number] = {};
       for (const [name, field] of Object.entries(dataProvider.fields)) {
-        if (field.type === "date") {
-          // @ts-expect-error TODO better types of R
-          result[name] = new Date(row[name]);
+        let value: string | number | Date | null = null;
+        if (
+          field.type === "date" &&
+          (typeof value === "string" || typeof value === "number")
+        ) {
+          value = new Date(value);
+        }
+
+        if (
+          typeof value === "string" ||
+          typeof value === "number" ||
+          value instanceof Date
+        ) {
+          result[name] = value;
         }
       }
       return result;
@@ -89,7 +97,7 @@ export function LineChart<R extends Datum>({
       ) : null}
       <Box sx={{ position: "relative" }}>
         <XLineChart
-          dataset={rows}
+          dataset={dataSet}
           xAxis={resolvedXAxis}
           series={resolvedSeries}
           height={300}

@@ -5,7 +5,10 @@ import invariant from "invariant";
 import * as React from "react";
 
 export type ValidId = string | number;
-export type ValidDatum = { id: ValidId; [key: string]: unknown };
+export type ValidDatum = {
+  id: ValidId;
+  [key: string]: string | number | boolean | Date;
+};
 export type Datum<R extends ValidDatum = ValidDatum> = R;
 
 export type ValidProp<R extends Datum> = keyof R & string;
