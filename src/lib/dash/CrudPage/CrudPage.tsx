@@ -10,13 +10,16 @@ import {
   useUpdateOne,
   FieldDef,
   Mutation,
+  useDeleteOne,
 } from "../data";
 import {
+  Alert,
   Box,
   Breadcrumbs,
   Button,
   Checkbox,
   Container,
+  Dialog,
   FormControlLabel,
   IconButton,
   Link,
@@ -148,7 +151,9 @@ function ListPage({}: ListPageProps) {
 
 interface DataEditorProps<R extends Datum> {
   value?: R;
-  mutation: Mutation<R>;
+  onChange: (value: R) => void;
+  pending?: boolean;
+  error?: Error | null;
 }
 
 function getDefaultFieldValue(field?: FieldDef<any, any>): any {
@@ -165,9 +170,13 @@ function getDefaultFieldValue(field?: FieldDef<any, any>): any {
   return "";
 }
 
-function DataEditor<R extends Datum>({ value, mutation }: DataEditorProps<R>) {
+function DataEditor<R extends Datum>({
+  value,
+  onChange,
+  pending,
+  error,
+}: DataEditorProps<R>) {
   const { basePath, dataProvider } = useCrudContext();
-  const navigate = useNavigate();
 
   const { control, handleSubmit } = useForm<R>({
     defaultValues: Object.fromEntries(
@@ -177,16 +186,8 @@ function DataEditor<R extends Datum>({ value, mutation }: DataEditorProps<R>) {
     ) as DefaultValues<R>,
   });
 
-  const onsubMit = React.useCallback(
-    async (data: R) => {
-      const newRecord = await mutation.mutate(data);
-      navigate(`${basePath}/show/${newRecord.id}`);
-    },
-    [basePath, mutation, navigate],
-  );
-
   return (
-    <Box component="form" onSubmit={handleSubmit(onsubMit)}>
+    <Box component="form" onSubmit={handleSubmit(onChange)}>
       <Stack direction="column" spacing={2}>
         {Object.entries(dataProvider.fields ?? {}).map(([name, field]) => {
           return (
@@ -221,19 +222,19 @@ function DataEditor<R extends Datum>({ value, mutation }: DataEditorProps<R>) {
             />
           );
         })}
+        <Toolbar disableGutters>
+          <Box sx={{ flexGrow: 1 }} />
+          <LoadingButton
+            type="submit"
+            variant="contained"
+            color="primary"
+            loading={pending}
+          >
+            Save
+          </LoadingButton>
+        </Toolbar>
+        {error ? <Alert color="error">{error.message}</Alert> : null}
       </Stack>
-
-      <Toolbar disableGutters>
-        <Box sx={{ flexGrow: 1 }} />
-        <LoadingButton
-          type="submit"
-          variant="contained"
-          color="primary"
-          loading={mutation.pending}
-        >
-          Save
-        </LoadingButton>
-      </Toolbar>
     </Box>
   );
 }
@@ -241,8 +242,20 @@ function DataEditor<R extends Datum>({ value, mutation }: DataEditorProps<R>) {
 interface NewPageProps {}
 
 function NewPage<R extends Datum>({}: NewPageProps) {
+  const navigate = useNavigate();
   const { basePath, dataProvider } = useCrudContext();
   const createMutation = useCreateOne(dataProvider);
+
+  const handleChange = React.useCallback(
+    async (data: R) => {
+      try {
+        const newRecord = await createMutation.mutate(data);
+        navigate(`${basePath}/show/${newRecord.id}`);
+      } catch {}
+    },
+    [basePath, createMutation, navigate],
+  );
+
   return (
     <Box>
       <Toolbar disableGutters>
@@ -257,7 +270,11 @@ function NewPage<R extends Datum>({}: NewPageProps) {
       </Toolbar>
       <CrudBreadcrumbs segments={["New"]} />
       <Box sx={{ my: 4 }}>
-        <DataEditor mutation={createMutation} />
+        <DataEditor
+          onChange={handleChange}
+          pending={createMutation.pending}
+          error={createMutation.error}
+        />
       </Box>
     </Box>
   );
@@ -298,6 +315,8 @@ interface ShowPageProps {
 function ShowPage({ id }: ShowPageProps) {
   const { basePath, name, dataProvider } = useCrudContext();
   const { data, error, loading } = useGetOne(dataProvider, id);
+  const deleteMutation = useDeleteOne(dataProvider);
+
   return (
     <Box>
       <Toolbar disableGutters>
@@ -361,10 +380,22 @@ interface EditPageProps {
   id: string;
 }
 
-function EditPage({ id }: EditPageProps) {
+function EditPage<R extends Datum>({ id }: EditPageProps) {
+  const navigate = useNavigate();
   const { basePath, name, dataProvider } = useCrudContext();
   const { data, error, loading } = useGetOne(dataProvider, id);
-  const updateMutation = useUpdateOne(dataProvider, id);
+  const updateMutation = useUpdateOne(dataProvider);
+
+  const handleChange = React.useCallback(
+    async (data: R) => {
+      try {
+        const newRecord = await updateMutation.mutate(id, data);
+        navigate(`${basePath}/show/${newRecord.id}`);
+      } catch {}
+    },
+    [basePath, id, navigate, updateMutation],
+  );
+
   return (
     <Box>
       <Toolbar disableGutters>
@@ -386,7 +417,14 @@ function EditPage({ id }: EditPageProps) {
             if (!data) {
               return <NoDataFoundOverlay id={id} />;
             }
-            return <DataEditor value={data} mutation={updateMutation} />;
+            return (
+              <DataEditor
+                value={data}
+                onChange={handleChange}
+                pending={updateMutation.pending}
+                error={updateMutation.error}
+              />
+            );
           }}
         />
       </Box>

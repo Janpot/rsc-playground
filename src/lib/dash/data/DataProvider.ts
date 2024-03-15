@@ -37,8 +37,8 @@ export interface GetManyParams {
   filter: FilterOption[];
 }
 
-export interface GetManyMethod {
-  (params: GetManyParams): Promise<{ rows: any[] }>;
+export interface GetManyMethod<R extends Datum> {
+  (params: GetManyParams): Promise<{ rows: R[] }>;
 }
 
 export interface ResolvedField<
@@ -50,12 +50,28 @@ export interface ResolvedField<
   valueFormatter?: ValueFormatter<R, K>;
 }
 
+export interface GetOneMethod<R extends Datum> {
+  (id: ValidId): Promise<R | null>;
+}
+
+export interface CreateOneMethod<R extends Datum> {
+  (data: R): Promise<R>;
+}
+
+export interface UpdateOneMethod<R extends Datum> {
+  (id: ValidId, data: R): Promise<R>;
+}
+
+export interface DeleteOneMethod {
+  (id: ValidId): Promise<void>;
+}
+
 export interface DataProviderDefinition<R extends Datum> {
-  getMany: GetManyMethod;
-  getOne?: (id: string) => Promise<R | null>;
-  createOne?: (data: R) => Promise<R>;
-  updateOne?: (id: string, data: R) => Promise<R>;
-  deleteOne?: (id: string) => Promise<void>;
+  getMany: GetManyMethod<R>;
+  getOne?: GetOneMethod<R>;
+  createOne?: CreateOneMethod<R>;
+  updateOne?: UpdateOneMethod<R>;
+  deleteOne?: DeleteOneMethod;
   fields: {
     [K in Exclude<keyof R & string, "id">]: FieldDef<R, K>;
   } & {
@@ -68,16 +84,16 @@ export type resolvedFields<R extends Datum> = {
 };
 
 export interface ResolvedDataProvider<R extends Datum> {
-  getMany: GetManyMethod;
-  getOne?: (id: string) => Promise<R | null>;
-  createOne?: (data: R) => Promise<R>;
-  updateOne?: (id: string, data: R) => Promise<R>;
-  deleteOne?: (id: string) => Promise<void>;
+  getMany: GetManyMethod<R>;
+  getOne?: GetOneMethod<R>;
+  createOne?: CreateOneMethod<R>;
+  updateOne?: UpdateOneMethod<R>;
+  deleteOne?: DeleteOneMethod;
   fields: resolvedFields<R>;
 }
 
 export function createDataProvider<R extends Datum>(
-  input: DataProviderDefinition<R> | GetManyMethod,
+  input: DataProviderDefinition<R> | GetManyMethod<R>,
 ): ResolvedDataProvider<R> {
   if (typeof input === "function") {
     return {
@@ -145,17 +161,18 @@ export function useGetOne<R extends Datum>(
   );
 }
 
-export interface Mutation<R> {
+export interface Mutation<F extends (...args: any[]) => Promise<any>> {
   pending: boolean;
   error: Error | null;
-  mutate: (data: R) => Promise<R>;
+  mutate: F;
+  reset: () => void;
 }
 
 export function useCreateOne<R extends Datum>(
   dataProvider: ResolvedDataProvider<R>,
-): Mutation<R> {
-  const { mutateAsync, isPending, error } = useMutation({
-    async mutationFn(data: any) {
+): Mutation<CreateOneMethod<R>> {
+  const { mutateAsync, isPending, error, reset } = useMutation({
+    async mutationFn(data: R) {
       invariant(dataProvider.createOne, "createOne not implemented");
       return dataProvider.createOne(data);
     },
@@ -166,19 +183,47 @@ export function useCreateOne<R extends Datum>(
       pending: isPending,
       error,
       mutate: mutateAsync,
+      reset,
     }),
-    [isPending, error, mutateAsync],
+    [isPending, error, mutateAsync, reset],
   );
 }
 
 export function useUpdateOne<R extends Datum>(
   dataProvider: ResolvedDataProvider<R>,
-  id: string,
-): Mutation<R> {
-  const { mutateAsync, error, isPending } = useMutation({
-    async mutationFn(data: any) {
+): Mutation<UpdateOneMethod<R>> {
+  const { mutateAsync, error, isPending, reset } = useMutation({
+    async mutationFn([id, data]: [ValidId, R]) {
       invariant(dataProvider.updateOne, "updateOne not implemented");
       return dataProvider.updateOne(id, data);
+    },
+  });
+
+  const mutate = React.useCallback(
+    (id: ValidId, data: R) => {
+      return mutateAsync([id, data]);
+    },
+    [mutateAsync],
+  );
+
+  return React.useMemo(
+    () => ({
+      pending: isPending,
+      error,
+      mutate,
+      reset,
+    }),
+    [isPending, error, mutate, reset],
+  );
+}
+
+export function useDeleteOne<R extends Datum>(
+  dataProvider: ResolvedDataProvider<R>,
+): Mutation<DeleteOneMethod> {
+  const { mutateAsync, error, isPending, reset } = useMutation({
+    async mutationFn(id: ValidId) {
+      invariant(dataProvider.deleteOne, "deleteOne not implemented");
+      return dataProvider.deleteOne(id);
     },
   });
 
@@ -187,7 +232,8 @@ export function useUpdateOne<R extends Datum>(
       pending: isPending,
       error,
       mutate: mutateAsync,
+      reset,
     }),
-    [isPending, error, mutateAsync],
+    [isPending, error, mutateAsync, reset],
   );
 }
