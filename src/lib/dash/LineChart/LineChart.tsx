@@ -68,7 +68,7 @@ export function LineChart<R extends Datum>({
     return resolvedRows.map((row, i) => {
       const result: NonNullable<XLineChartProps["dataset"]>[number] = {};
       for (const [name, field] of Object.entries(dataProvider.fields)) {
-        let value: string | number | Date | null = null;
+        let value = row[name];
         if (
           field.type === "date" &&
           (typeof value === "string" || typeof value === "number")
