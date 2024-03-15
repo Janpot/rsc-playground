@@ -15,7 +15,7 @@ import {
   Datum,
   useGetMany,
 } from "../data";
-import { CardSurface, ErrorOverlay } from "../components";
+import { CardSurface, ErrorOverlay, LoadingOverlay } from "../components";
 
 export interface DataGridProps<R extends Datum>
   extends Pick<
@@ -84,6 +84,10 @@ export function DataGrid<R extends Datum>({
   getRowId: getRowIdProp,
   ...props
 }: DataGridProps<R>) {
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
   const { data, loading, error } = useGetMany(dataProvider);
 
   const columns = React.useMemo(
@@ -108,18 +112,26 @@ export function DataGrid<R extends Datum>({
 
   return (
     <Box sx={{ height: 400, position: "relative" }}>
-      <DataGridPro
-        getRowId={getRowId}
-        rows={rows}
-        columns={columns}
-        loading={loading}
-        {...props}
-      />
-      {error ? (
+      {mounted ? (
+        <>
+          <DataGridPro
+            getRowId={getRowId}
+            rows={rows}
+            columns={columns}
+            loading={loading}
+            {...props}
+          />
+          {error ? (
+            <CardSurface sx={{ position: "absolute", inset: "0 0 0 0" }}>
+              <ErrorOverlay error={error} />
+            </CardSurface>
+          ) : null}
+        </>
+      ) : (
         <CardSurface sx={{ position: "absolute", inset: "0 0 0 0" }}>
-          <ErrorOverlay error={error} />
+          <LoadingOverlay />
         </CardSurface>
-      ) : null}
+      )}
     </Box>
   );
 }
