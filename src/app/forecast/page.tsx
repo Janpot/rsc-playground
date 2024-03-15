@@ -6,6 +6,7 @@ import {
   DataGrid,
   LineChart,
   ParameterSelect,
+  BarChart,
 } from "@/lib/dash/client";
 import { Box, Container, Stack } from "@mui/material";
 import { FilterBinding, createUrlParameter } from "@/lib/dash/filter";
@@ -29,9 +30,6 @@ const FILTER_BINDINGS: FilterBinding<any>[] = [
 ];
 
 const FORECAST_X_AXIS = [{ dataKey: "time" }];
-const TEMPERATURE_SERIES = [{ dataKey: "temperature" }];
-const WIND_SERIES = [{ dataKey: "wind" }];
-const PRECIPITATION_SERIES = [{ dataKey: "precipitation" }];
 
 export default function DashboardContent() {
   return (
@@ -61,17 +59,17 @@ export default function DashboardContent() {
           <LineChart
             dataProvider={forecast}
             xAxis={FORECAST_X_AXIS}
-            series={TEMPERATURE_SERIES}
+            series={[{ dataKey: "temperature" }]}
           />
           <LineChart
             dataProvider={forecast}
             xAxis={FORECAST_X_AXIS}
-            series={WIND_SERIES}
+            series={[{ dataKey: "wind" }]}
           />
-          <LineChart
+          <BarChart
             dataProvider={forecast}
             xAxis={FORECAST_X_AXIS}
-            series={PRECIPITATION_SERIES}
+            series={[{ dataKey: "precipitation", color: "blue" }]}
           />
         </Stack>
       </Container>

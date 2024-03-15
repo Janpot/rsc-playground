@@ -2,25 +2,25 @@
 
 import React from "react";
 import {
-  LineChart as XLineChart,
-  LineChartProps as XLineChartProps,
+  BarChart as XBarChart,
+  BarChartProps as XBarChartProps,
   AxisConfig,
 } from "@mui/x-charts";
 import { Box, Typography } from "@mui/material";
 import { Datum, ResolvedDataProvider, useGetMany } from "../data";
 import { CardSurface, ErrorOverlay, LoadingOverlay } from "../components";
 
-export interface LineChartProps<R extends Datum> extends XLineChartProps {
+export interface BarChartProps<R extends Datum> extends XBarChartProps {
   title?: string;
   dataProvider: ResolvedDataProvider<R>;
 }
 
-export function LineChart<R extends Datum>({
+export function BarChart<R extends Datum>({
   title,
   dataProvider,
   xAxis,
   series,
-}: LineChartProps<R>) {
+}: BarChartProps<R>) {
   const { data, loading, error } = useGetMany(dataProvider);
   const resolvedXAxis = React.useMemo(() => {
     return (
@@ -30,21 +30,20 @@ export function LineChart<R extends Datum>({
           const field = dataProvider.fields[axis.dataKey];
           if (field) {
             defaults = {
+              scaleType: "band",
               label: field.label,
             };
-            if (field.type === "date") {
-              defaults.scaleType = "time";
-            }
           }
         }
         return { ...defaults, ...axis };
       }) ?? []
     );
   }, [dataProvider.fields, xAxis]);
+  console.log(resolvedXAxis);
 
   const resolvedSeries = React.useMemo(() => {
     return series.map((s) => {
-      let defaults: Partial<XLineChartProps["series"][number]> = {};
+      let defaults: Partial<XBarChartProps["series"][number]> = {};
       if (s.dataKey) {
         const name = s.dataKey;
         const field = dataProvider.fields[name];
@@ -66,7 +65,7 @@ export function LineChart<R extends Datum>({
   const dataSet = React.useMemo(() => {
     const resolvedRows = data?.rows ?? [];
     return resolvedRows.map((row, i) => {
-      const result: NonNullable<XLineChartProps["dataset"]>[number] = {};
+      const result: NonNullable<XBarChartProps["dataset"]>[number] = {};
       for (const [name, field] of Object.entries(dataProvider.fields)) {
         let value = row[name];
         if (
@@ -96,10 +95,10 @@ export function LineChart<R extends Datum>({
         </Typography>
       ) : null}
       <Box sx={{ position: "relative" }}>
-        <XLineChart
+        <XBarChart
           dataset={dataSet}
           xAxis={resolvedXAxis}
-          series={resolvedSeries}
+          series={dataSet.length > 0 ? resolvedSeries : []}
           height={300}
         />
         {loading ? <LoadingOverlay /> : null}
