@@ -69,6 +69,7 @@ export const forecast = createDataProvider<WeatherDatum>({
       })
       .map((item: any, index: number) => ({
         id: index,
+        city: cityName,
         time: item.time,
         temperature: item.data?.instant?.details?.air_temperature,
         wind: item.data?.instant?.details?.wind_speed,
