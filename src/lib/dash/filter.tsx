@@ -1,56 +1,34 @@
 import "client-only";
 import * as React from "react";
 import { useNavigate, useSearchParams } from "./navigation";
-import type { ResolvedDataProvider, ValidDatum } from "./data";
+import type { Datum, ResolvedDataProvider, ValidDatum } from "./data";
 
-export interface FilterOption {
-  field: string;
+export interface FilterOption<
+  R,
+  K extends keyof R & string = keyof R & string,
+> {
+  field: K;
   operator: string;
-  value: string;
+  value: R[K];
 }
 
-export interface FilterFieldDef {
-  field: string;
-  // default operator = 'eq'
-  operator?: string;
-  defaultvalue?: string;
-}
-
-export interface DashboardFilter {
-  filter: FilterOption[];
-  setFilter: React.Dispatch<React.SetStateAction<FilterOption[]>>;
-  getKey: () => string;
-}
-
-export function getKeyFromFilter(filter: FilterOption[]): string {
+export function getKeyFromFilter<R extends Datum>(filter: Filter<R>): string {
   return JSON.stringify(filter);
 }
 
-export interface ExpandedFilter {
-  [field: string]: {
+export type Filter<R extends Datum> = {
+  [field in keyof R & string]?: {
     [operator: string]: string;
   };
-}
+};
 
-export function expandFilter(filter: FilterOption[]): ExpandedFilter {
-  const result: ExpandedFilter = {};
+function expandFilter<R extends Datum>(filter: FilterOption<R>[]): Filter<R> {
+  const result: Filter<R> = {};
   for (const { field, operator, value } of filter) {
-    if (!result[field]) {
-      result[field] = {};
-    }
-    result[field][operator] = value;
+    result[field] ??= {};
+    (result[field] as any)[operator] = value as any;
   }
   return result;
-}
-
-export function flattenFilter(filter: ExpandedFilter): FilterOption[] {
-  return Object.entries(filter).flatMap(([field, operators]) => {
-    return Object.entries(operators).map(([operator, value]) => ({
-      field,
-      operator,
-      value,
-    }));
-  });
 }
 
 export interface Codec<V> {
@@ -200,9 +178,9 @@ function flattenFilterBinding(
   });
 }
 
-export function useAppliedFilter(
-  dataProvider: ResolvedDataProvider<any>,
-): FilterOption[] {
+export function useAppliedFilter<R extends Datum>(
+  dataProvider: ResolvedDataProvider<R>,
+): Filter<R> {
   const bindings = React.useContext(FilterBindingContext);
 
   const flat = React.useMemo(() => {
@@ -215,14 +193,14 @@ export function useAppliedFilter(
 
   const parameterValues = useParameterValues(flat.map((f) => f.parameter));
 
-  const filter: FilterOption[] = React.useMemo(() => {
+  const filter: Filter<R> = React.useMemo(() => {
     const flatFilter = flat.map((option) => ({
       field: option.field,
       operator: option.operator,
       value: parameterValues[option.parameter.name],
     }));
 
-    return flatFilter;
+    return expandFilter(flatFilter);
   }, [flat, parameterValues]);
 
   return filter;

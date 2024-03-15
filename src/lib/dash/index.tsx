@@ -3,14 +3,14 @@ import "server-only";
 import { Datum, FieldDef, GetManyMethod, GetManyParams } from "./client";
 import { Pool } from "pg";
 
-interface SqlFunction {
-  (params: GetManyParams): string;
+interface SqlFunction<R extends Datum> {
+  (params: GetManyParams<R>): string;
 }
 
 export function createConnection<R extends Datum>(connectionString: string) {
   const pool = new Pool({ connectionString });
   return {
-    query(sql: SqlFunction): GetManyMethod<R> {
+    query(sql: SqlFunction<R>): GetManyMethod<R> {
       return async (params) => {
         const { rows, fields } = await pool.query(sql(params));
 

@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { FilterOption, getKeyFromFilter, useAppliedFilter } from "../filter";
+import { Filter, getKeyFromFilter, useAppliedFilter } from "../filter";
 import { getObjectKey } from "../utils";
 import invariant from "invariant";
 import * as React from "react";
@@ -33,12 +33,12 @@ export interface FieldDef<
   valueFormatter?: ValueFormatter<R, K>;
 }
 
-export interface GetManyParams {
-  filter: FilterOption[];
+export interface GetManyParams<R extends Datum> {
+  filter: Filter<R>;
 }
 
 export interface GetManyMethod<R extends Datum> {
-  (params: GetManyParams): Promise<{ rows: R[] }>;
+  (params: GetManyParams<R>): Promise<{ rows: R[] }>;
 }
 
 export interface ResolvedField<

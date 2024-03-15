@@ -4,7 +4,7 @@ import {
   createDataProvider,
   ValueFormatterParams,
 } from "../../lib/dash/client";
-import { ExpandedFilter, expandFilter } from "@/lib/dash/filter";
+import { Filter } from "@/lib/dash/filter";
 import { fetchGaData } from "./serverData";
 import dayjs from "dayjs";
 
@@ -25,16 +25,13 @@ function marketShare(
   return reactDomDownloads > 0 ? downloads / reactDomDownloads : null;
 }
 
-async function fetchPackageNpmStats(
-  packageName: string,
-  expanded: ExpandedFilter,
-) {
-  if (!expanded.date.gte || !expanded.date.lte) {
+async function fetchPackageNpmStats(packageName: string, filter: Filter<any>) {
+  if (!filter.date?.gte || !filter.date?.lte) {
     throw new Error("date range is required");
   }
 
   const url = new URL(
-    `https://api.npmjs.org/downloads/range/${encodeURIComponent(expanded.date.gte)}:${encodeURIComponent(expanded.date.lte)}/${encodeURIComponent(packageName)}`,
+    `https://api.npmjs.org/downloads/range/${encodeURIComponent(filter.date.gte)}:${encodeURIComponent(filter.date.lte)}/${encodeURIComponent(packageName)}`,
   );
 
   const response = await fetch(url, {
@@ -54,18 +51,16 @@ async function fetchPackageNpmStats(
 
 export const dailyStats = createDataProvider({
   async getMany({ filter }) {
-    const expanded = expandFilter(filter);
-
     const [
       muiMaterialDownloads,
       materialUiCoreDownloads,
       baseUiDownloads,
       reactDomDownloads,
     ] = await Promise.all([
-      fetchPackageNpmStats("@mui/material", expanded),
-      fetchPackageNpmStats("@material-ui/core", expanded),
-      fetchPackageNpmStats("@mui/base", expanded),
-      fetchPackageNpmStats("react-dom", expanded),
+      fetchPackageNpmStats("@mui/material", filter),
+      fetchPackageNpmStats("@material-ui/core", filter),
+      fetchPackageNpmStats("@mui/base", filter),
+      fetchPackageNpmStats("react-dom", filter),
     ]);
 
     const aggregated = muiMaterialDownloads.map((item: any, i: number) => {

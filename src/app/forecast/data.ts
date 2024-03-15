@@ -16,6 +16,7 @@ export const CITIES = new Map([
 
 export type WeatherDatum = {
   id: string;
+  city: string;
   time: string;
   temperature: number;
   wind: number;
@@ -24,20 +25,18 @@ export type WeatherDatum = {
 };
 
 export const forecast = createDataProvider<WeatherDatum>({
-  async getMany({ filter }: GetManyParams) {
+  async getMany({ filter }) {
     const url = new URL(
       "https://api.met.no/weatherapi/locationforecast/2.0/compact",
     );
 
-    const cityName = filter.find(
-      (item) => item.field === "city" && item.operator === "eq",
-    );
+    const cityName = filter.city?.eq;
 
     if (!cityName) {
       throw new Error("City name is required");
     }
 
-    const city = CITIES.get(cityName.value);
+    const city = CITIES.get(cityName);
 
     if (!city) {
       throw new Error(`City not found: ${cityName}`);
@@ -85,6 +84,9 @@ export const forecast = createDataProvider<WeatherDatum>({
     time: {
       label: "Time",
       type: "date",
+    },
+    city: {
+      label: "City",
     },
     temperature: {
       label: "Temperature",
