@@ -64,7 +64,7 @@ export default function DashboardContent() {
           <LineChart
             dataProvider={forecast}
             xAxis={FORECAST_X_AXIS}
-            series={[{ dataKey: "wind" }]}
+            series={[{ dataKey: "wind", area: true }]}
           />
           <BarChart
             dataProvider={forecast}
