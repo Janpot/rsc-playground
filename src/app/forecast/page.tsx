@@ -18,22 +18,22 @@ const cityParameter = createUrlParameter<string>("city", {
   defaultValue: CITIES.keys().next().value,
 });
 
-const FILTER_BINDINGS: FilterBinding<any>[] = [
-  [
-    forecast,
-    {
-      city: {
-        eq: cityParameter,
-      },
-    },
-  ],
-];
-
 const FORECAST_X_AXIS = [{ dataKey: "time" }];
 
 export default function DashboardContent() {
   return (
-    <Dashboard bindings={FILTER_BINDINGS}>
+    <Dashboard
+      bindings={[
+        [
+          forecast,
+          {
+            city: {
+              eq: cityParameter,
+            },
+          },
+        ],
+      ]}
+    >
       <Container sx={{ mt: 5 }}>
         <Stack direction="column" spacing={4}>
           <Toolbar disableGutters>

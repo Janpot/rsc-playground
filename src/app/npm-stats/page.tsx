@@ -10,11 +10,7 @@ import {
   LineChartProps,
 } from "@/lib/dash/client";
 import { Box, Container, Stack, Typography } from "@mui/material";
-import {
-  FilterBinding,
-  createUrlParameter,
-  useParameterValue,
-} from "@/lib/dash/filter";
+import { createUrlParameter, useParameterValue } from "@/lib/dash/filter";
 import dayjs from "dayjs";
 import Grid2 from "@mui/material/Unstable_Grid2/Grid2";
 import { dailyStats, gaData, monthlyStats } from "./data";
@@ -27,44 +23,6 @@ const X_AXIS = [
     dataKey: "day",
   },
 ] satisfies LineChartProps<any>["xAxis"];
-
-const CORE_DOWNLOADS_SERIES = [
-  {
-    dataKey: "muiMaterialDownloadsCount",
-    showMark: false,
-  },
-  {
-    dataKey: "materialUiCoreDownloadsCount",
-    showMark: false,
-  },
-] satisfies LineChartProps<any>["series"];
-
-const CORE_MARKET_SHARE_SERIES = [
-  {
-    dataKey: "coreMarketShare",
-    showMark: false,
-  },
-] satisfies LineChartProps<any>["series"];
-
-const BASE_DOWNLOADS_SERIES = [
-  {
-    dataKey: "baseUiDownloadsCount",
-    showMark: false,
-  },
-] satisfies LineChartProps<any>["series"];
-
-const BSE_MARKET_SHARE_SERIES = [
-  {
-    dataKey: "baseUiMarketShare",
-    showMark: false,
-  },
-] satisfies LineChartProps<any>["series"];
-
-const GA_DATA_COLUMNS = [
-  {
-    field: "foo",
-  },
-];
 
 const resolutionParameter = createUrlParameter<Resolution>("resolution", {
   defaultValue: "Daily",
@@ -80,33 +38,33 @@ const endParameter = createUrlParameter("end", {
   defaultValue: today.format("YYYY-MM-DD"),
 });
 
-const PARAMETER_BINDINGS: FilterBinding<any>[] = [
-  [
-    dailyStats,
-    {
-      date: {
-        gte: startParameter,
-        lte: endParameter,
-      },
-    },
-  ],
-  [
-    monthlyStats,
-    {
-      date: {
-        gte: startParameter,
-        lte: endParameter,
-      },
-    },
-  ],
-];
-
 export default function DashboardContent() {
   const resolution = useParameterValue(resolutionParameter);
   const dataProvider = resolution === "Daily" ? dailyStats : monthlyStats;
 
   return (
-    <Dashboard bindings={PARAMETER_BINDINGS}>
+    <Dashboard
+      bindings={[
+        [
+          dailyStats,
+          {
+            date: {
+              gte: startParameter,
+              lte: endParameter,
+            },
+          },
+        ],
+        [
+          monthlyStats,
+          {
+            date: {
+              gte: startParameter,
+              lte: endParameter,
+            },
+          },
+        ],
+      ]}
+    >
       <Container sx={{ mt: 5 }}>
         <Stack direction="column" spacing={4}>
           <Box>
@@ -130,7 +88,16 @@ export default function DashboardContent() {
                   title="Material UI (@mui/material)"
                   dataProvider={dataProvider}
                   xAxis={X_AXIS}
-                  series={CORE_DOWNLOADS_SERIES}
+                  series={[
+                    {
+                      dataKey: "muiMaterialDownloadsCount",
+                      showMark: false,
+                    },
+                    {
+                      dataKey: "materialUiCoreDownloadsCount",
+                      showMark: false,
+                    },
+                  ]}
                 />
               </Grid2>
               <Grid2 xs={12} md={6}>
@@ -138,7 +105,12 @@ export default function DashboardContent() {
                   title="Base UI (@mui/base)"
                   dataProvider={dataProvider}
                   xAxis={X_AXIS}
-                  series={BASE_DOWNLOADS_SERIES}
+                  series={[
+                    {
+                      dataKey: "baseUiDownloadsCount",
+                      showMark: false,
+                    },
+                  ]}
                 />
               </Grid2>
               <Grid2 xs={12} md={6}>
@@ -146,7 +118,12 @@ export default function DashboardContent() {
                   title="Material UI React DOM marketshare"
                   dataProvider={dataProvider}
                   xAxis={X_AXIS}
-                  series={CORE_MARKET_SHARE_SERIES}
+                  series={[
+                    {
+                      dataKey: "coreMarketShare",
+                      showMark: false,
+                    },
+                  ]}
                 />
               </Grid2>
               <Grid2 xs={12} md={6}>
@@ -154,17 +131,17 @@ export default function DashboardContent() {
                   title="Base UI React DOM marketshare"
                   dataProvider={dataProvider}
                   xAxis={X_AXIS}
-                  series={BSE_MARKET_SHARE_SERIES}
+                  series={[
+                    {
+                      dataKey: "baseUiMarketShare",
+                      showMark: false,
+                    },
+                  ]}
                 />
               </Grid2>
             </Grid2>
           </Box>
-          <DataGrid
-            dataProvider={gaData}
-            columns={GA_DATA_COLUMNS}
-            pagination
-            autoPageSize
-          />
+          <DataGrid dataProvider={gaData} pagination autoPageSize />
         </Stack>
       </Container>
     </Dashboard>

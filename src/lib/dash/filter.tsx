@@ -61,19 +61,24 @@ export function createUrlParameter<V = string>(
   };
 }
 
+function getParamValue<V>(
+  searchParams: URLSearchParams,
+  param: Parameter<V>,
+): V | null {
+  const value = searchParams.get(param.name);
+  if (value === null) {
+    return param.defaultValue ?? null;
+  }
+  const parsedValue = param.codec ? param.codec.parse(value) : value;
+  return parsedValue as V;
+}
+
 export function useParameterValues(params: Parameter<any>[]): any {
   const searchParams = useSearchParams();
 
   return React.useMemo(() => {
     return Object.fromEntries(
-      params.map((param) => {
-        const value = searchParams.get(param.name);
-        if (value === null) {
-          return [param.name, param.defaultValue ?? null];
-        }
-        const parsedValue = param.codec ? param.codec.parse(value) : value;
-        return [param.name, parsedValue];
-      }),
+      params.map((param) => [param.name, getParamValue(searchParams, param)]),
     );
   }, [params, searchParams]);
 }
@@ -111,7 +116,6 @@ export function useSetParameterValues(
 
         newParams.set(param.name, stringValue);
       }
-      console.log(" navigating to: ", `?${newParams.toString()}`);
       navigate(`?${newParams.toString()}`, { history: "replace" });
     },
     [navigate, paramMap, searchParams],
@@ -142,7 +146,9 @@ export type FilterBinding<R extends ValidDatum> = [
   FilterOperatorBinding<R>,
 ];
 
-const FilterBindingContext = React.createContext<FilterBinding<any>[]>([]);
+type FilterBindingContextValue = [ResolvedDataProvider<any>, Filter<any>][];
+
+const FilterBindingContext = React.createContext<FilterBindingContextValue>([]);
 
 export interface FilterBindingProviderProps {
   children?: React.ReactNode;
@@ -153,8 +159,62 @@ export function FilterBindingProvider({
   children,
   bindings,
 }: FilterBindingProviderProps) {
+  const searchParams = useSearchParams();
+
+  const filters: FilterBindingContextValue = React.useMemo(() => {
+    return bindings.map(([dataProvider, dataProviderbindings]) => {
+      const filter: Filter<any> = {};
+
+      for (const [name, operatorParam] of Object.entries(
+        dataProviderbindings,
+      )) {
+        for (const [operator, param] of Object.entries(operatorParam)) {
+          const value = getParamValue(searchParams, param);
+          if (value !== null) {
+            filter[name] ??= {};
+            filter[name]![operator] = value;
+          }
+        }
+      }
+
+      return [dataProvider, filter];
+    });
+  }, [bindings, searchParams]);
+
+  const prevFiltersRef = React.useRef(filters);
+
+  // Stabilize the value of filters so that we don't trigger unnecessary re-renders
+  // this allows for taking the bindings as unstable prop
+  const stableFilters = React.useMemo(() => {
+    const prevFilters = prevFiltersRef.current;
+    if (prevFilters === filters) {
+      return filters;
+    }
+    if (prevFilters.length !== filters.length) {
+      return filters;
+    }
+
+    const changes: FilterBindingContextValue = [];
+    let changeDetected = false;
+    for (let i = 0; i < filters.length; i++) {
+      const [dp, filter] = filters[i];
+      const [prevDp, prevFilter] = prevFilters[i];
+      if (
+        dp === prevDp &&
+        getKeyFromFilter(filter) === getKeyFromFilter(prevFilter)
+      ) {
+        changes.push(prevFilters[i]);
+      } else {
+        changes.push(filters[i]);
+        changeDetected = true;
+      }
+    }
+
+    return changeDetected ? changes : prevFilters;
+  }, [filters]);
+
   return (
-    <FilterBindingContext.Provider value={bindings}>
+    <FilterBindingContext.Provider value={stableFilters}>
       {children}
     </FilterBindingContext.Provider>
   );
@@ -181,27 +241,9 @@ function flattenFilterBinding(
 export function useAppliedFilter<R extends Datum>(
   dataProvider: ResolvedDataProvider<R>,
 ): Filter<R> {
-  const bindings = React.useContext(FilterBindingContext);
-
-  const flat = React.useMemo(() => {
-    const providerbinding = bindings.find(([dp]) => dp === dataProvider);
-    const dataProviderbindings = providerbinding ? providerbinding[1] : {};
-    return dataProviderbindings
-      ? flattenFilterBinding(dataProviderbindings)
-      : [];
-  }, [bindings, dataProvider]);
-
-  const parameterValues = useParameterValues(flat.map((f) => f.parameter));
-
-  const filter: Filter<R> = React.useMemo(() => {
-    const flatFilter = flat.map((option) => ({
-      field: option.field,
-      operator: option.operator,
-      value: parameterValues[option.parameter.name],
-    }));
-
-    return expandFilter(flatFilter);
-  }, [flat, parameterValues]);
-
-  return filter;
+  const filters = React.useContext(FilterBindingContext);
+  return React.useMemo(
+    () => filters.find(([dp]) => dp === dataProvider)?.[1] ?? {},
+    [dataProvider, filters],
+  );
 }

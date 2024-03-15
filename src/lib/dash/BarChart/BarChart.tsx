@@ -39,7 +39,6 @@ export function BarChart<R extends Datum>({
       }) ?? []
     );
   }, [dataProvider.fields, xAxis]);
-  console.log(resolvedXAxis);
 
   const resolvedSeries = React.useMemo(() => {
     return series.map((s) => {
