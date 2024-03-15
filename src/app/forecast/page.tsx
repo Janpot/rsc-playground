@@ -9,9 +9,9 @@ import {
   BarChart,
 } from "@/lib/dash/client";
 import { Box, Container, Stack, Toolbar, Typography } from "@mui/material";
-import { FilterBinding, createUrlParameter } from "@/lib/dash/filter";
+import { createUrlParameter } from "@/lib/dash/filter";
 import { Metric } from "@/lib/dash/Metric";
-import Grid2 from "@mui/material/Unstable_Grid2/Grid2";
+import Grid from "@mui/material/Unstable_Grid2/Grid2";
 import { CITIES, forecast } from "./data";
 
 const cityParameter = createUrlParameter<string>("city", {
@@ -46,17 +46,17 @@ export default function DashboardContent() {
           </Toolbar>
           <DataGrid dataProvider={forecast} pagination autoPageSize />
           <Box>
-            <Grid2 container spacing={4}>
-              <Grid2 xs={12} md={4}>
+            <Grid container spacing={4}>
+              <Grid xs={12} md={4}>
                 <Metric dataProvider={forecast} field="temperature" />
-              </Grid2>
-              <Grid2 xs={12} md={4}>
+              </Grid>
+              <Grid xs={12} md={4}>
                 <Metric dataProvider={forecast} field="wind" />
-              </Grid2>
-              <Grid2 xs={12} md={4}>
+              </Grid>
+              <Grid xs={12} md={4}>
                 <Metric dataProvider={forecast} field="precipitation" />
-              </Grid2>
-            </Grid2>
+              </Grid>
+            </Grid>
           </Box>
           <LineChart
             dataProvider={forecast}

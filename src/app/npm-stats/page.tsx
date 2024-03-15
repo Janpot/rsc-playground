@@ -12,7 +12,7 @@ import {
 import { Box, Container, Stack, Typography } from "@mui/material";
 import { createUrlParameter, useParameterValue } from "@/lib/dash/filter";
 import dayjs from "dayjs";
-import Grid2 from "@mui/material/Unstable_Grid2/Grid2";
+import Grid from "@mui/material/Unstable_Grid2/Grid2";
 import { dailyStats, gaData, monthlyStats } from "./data";
 
 const RESOLUTION = ["Daily", "Monthly"] as const;
@@ -69,21 +69,23 @@ export default function DashboardContent() {
         <Stack direction="column" spacing={4}>
           <Box>
             <Typography variant="h4">NPM Stats</Typography>
+            <Stack direction="row" spacing={2}>
+              <ParameterDateRangePicker
+                start={startParameter}
+                end={endParameter}
+              />
+              <ParameterSelect
+                options={RESOLUTION}
+                parameter={resolutionParameter}
+              />
+            </Stack>
           </Box>
-          <Stack direction="row" spacing={2}>
-            <ParameterDateRangePicker
-              start={startParameter}
-              end={endParameter}
-            />
-            <ParameterSelect
-              options={RESOLUTION}
-              parameter={resolutionParameter}
-            />
-          </Stack>
-          <DataGrid dataProvider={dataProvider} pagination autoPageSize />
           <Box>
-            <Grid2 container spacing={4}>
-              <Grid2 xs={12} md={6}>
+            <Grid container spacing={4}>
+              <Grid xs={12}>
+                <DataGrid dataProvider={dataProvider} pagination autoPageSize />
+              </Grid>
+              <Grid xs={12} md={6}>
                 <LineChart
                   title="Material UI (@mui/material)"
                   dataProvider={dataProvider}
@@ -99,8 +101,8 @@ export default function DashboardContent() {
                     },
                   ]}
                 />
-              </Grid2>
-              <Grid2 xs={12} md={6}>
+              </Grid>
+              <Grid xs={12} md={6}>
                 <LineChart
                   title="Base UI (@mui/base)"
                   dataProvider={dataProvider}
@@ -112,8 +114,8 @@ export default function DashboardContent() {
                     },
                   ]}
                 />
-              </Grid2>
-              <Grid2 xs={12} md={6}>
+              </Grid>
+              <Grid xs={12} md={6}>
                 <LineChart
                   title="Material UI React DOM marketshare"
                   dataProvider={dataProvider}
@@ -125,8 +127,8 @@ export default function DashboardContent() {
                     },
                   ]}
                 />
-              </Grid2>
-              <Grid2 xs={12} md={6}>
+              </Grid>
+              <Grid xs={12} md={6}>
                 <LineChart
                   title="Base UI React DOM marketshare"
                   dataProvider={dataProvider}
@@ -138,10 +140,12 @@ export default function DashboardContent() {
                     },
                   ]}
                 />
-              </Grid2>
-            </Grid2>
+              </Grid>
+              <Grid xs={12}>
+                <DataGrid dataProvider={gaData} pagination autoPageSize />
+              </Grid>
+            </Grid>
           </Box>
-          <DataGrid dataProvider={gaData} pagination autoPageSize />
         </Stack>
       </Container>
     </Dashboard>
