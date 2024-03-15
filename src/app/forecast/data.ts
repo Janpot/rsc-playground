@@ -1,6 +1,6 @@
 "use client";
 
-import { GetManyParams, createDataProvider } from "@/lib/dash/client";
+import { createDataProvider } from "@/lib/dash/client";
 import dayjs from "dayjs";
 
 const numberFormat = new Intl.NumberFormat();

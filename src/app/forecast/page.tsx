@@ -8,7 +8,7 @@ import {
   ParameterSelect,
   BarChart,
 } from "@/lib/dash/client";
-import { Box, Container, Stack } from "@mui/material";
+import { Box, Container, Stack, Toolbar, Typography } from "@mui/material";
 import { FilterBinding, createUrlParameter } from "@/lib/dash/filter";
 import { Metric } from "@/lib/dash/Metric";
 import Grid2 from "@mui/material/Unstable_Grid2/Grid2";
@@ -36,12 +36,14 @@ export default function DashboardContent() {
     <Dashboard bindings={FILTER_BINDINGS}>
       <Container sx={{ mt: 5 }}>
         <Stack direction="column" spacing={4}>
-          <Stack direction="row" spacing={2}>
+          <Toolbar disableGutters>
+            <Typography variant="h4">Weather Forecast</Typography>
+            <Box sx={{ flexGrow: 1 }} />
             <ParameterSelect
               options={Array.from(CITIES.keys())}
               parameter={cityParameter}
             />
-          </Stack>
+          </Toolbar>
           <DataGrid dataProvider={forecast} pagination autoPageSize />
           <Box>
             <Grid2 container spacing={4}>
