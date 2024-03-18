@@ -5,8 +5,9 @@ import {
   LineChart as XLineChart,
   LineChartProps as XLineChartProps,
   AxisConfig,
+  blueberryTwilightPalette,
 } from "@mui/x-charts";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, useTheme } from "@mui/material";
 import { Datum, ResolvedDataProvider, useGetMany } from "../data";
 import { CardSurface, ErrorOverlay, LoadingOverlay } from "../components";
 
@@ -21,6 +22,7 @@ export function LineChart<R extends Datum>({
   xAxis,
   series,
 }: LineChartProps<R>) {
+  const theme = useTheme();
   const { data, loading, error } = useGetMany(dataProvider);
   const resolvedXAxis = React.useMemo(() => {
     return (
@@ -43,14 +45,20 @@ export function LineChart<R extends Datum>({
   }, [dataProvider.fields, xAxis]);
 
   const resolvedSeries = React.useMemo(() => {
+    const colorSchemeIndices = new Map(
+      Object.keys(dataProvider.fields).map((name, i) => [name, i]),
+    );
+    const colors = blueberryTwilightPalette(theme.palette.mode);
     return series.map((s) => {
       let defaults: Partial<XLineChartProps["series"][number]> = {};
       if (s.dataKey) {
         const name = s.dataKey;
         const field = dataProvider.fields[name];
         if (field) {
+          const colorSchemeIndex = colorSchemeIndices.get(name) ?? 0;
           defaults = {
             label: field.label,
+            color: colors[colorSchemeIndex % colors.length],
           };
           const valueFormatter = field.valueFormatter;
           if (valueFormatter) {
@@ -61,7 +69,7 @@ export function LineChart<R extends Datum>({
       }
       return { ...defaults, ...s };
     });
-  }, [series, dataProvider.fields]);
+  }, [dataProvider.fields, theme.palette.mode, series]);
 
   const dataSet = React.useMemo(() => {
     const resolvedRows = data?.rows ?? [];

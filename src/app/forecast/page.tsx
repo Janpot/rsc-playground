@@ -71,7 +71,7 @@ export default function DashboardContent() {
           <BarChart
             dataProvider={forecast}
             xAxis={FORECAST_X_AXIS}
-            series={[{ dataKey: "precipitation", color: "blue" }]}
+            series={[{ dataKey: "precipitation" }]}
           />
         </Stack>
       </Container>
