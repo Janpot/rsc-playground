@@ -1,6 +1,6 @@
 import "client-only";
 import * as React from "react";
-import { useNavigate, useSearchParams } from "./navigation";
+import { useSearchParams } from "./navigation";
 import type { Datum, ResolvedDataProvider, ValidDatum } from "./data";
 
 export interface FilterOption<
@@ -22,122 +22,19 @@ export type Filter<R extends Datum> = {
   };
 };
 
-function expandFilter<R extends Datum>(filter: FilterOption<R>[]): Filter<R> {
-  const result: Filter<R> = {};
-  for (const { field, operator, value } of filter) {
-    result[field] ??= {};
-    (result[field] as any)[operator] = value as any;
-  }
-  return result;
-}
-
 export interface Codec<V> {
   parse: (value: string) => V;
   stringify: (value: V) => string;
 }
-
-export type Parameter<V = string> = {
-  kind: "urlQuery";
-  name: string;
-  codec?: Codec<V>;
-  defaultValue?: V;
-};
 
 export type CreateUrlParameterOptions<V> = {
   codec?: Codec<V>;
   defaultValue?: V;
 } & (V extends string ? {} : { codec: Codec<V> });
 
-export function createUrlParameter<V = string>(
-  name: string,
-  options: V extends string
-    ? CreateUrlParameterOptions<V> | undefined
-    : CreateUrlParameterOptions<V>,
-): Parameter<V> {
-  return {
-    kind: "urlQuery",
-    name,
-    ...options,
-  };
-}
-
-function getParamValue<V>(
-  searchParams: URLSearchParams,
-  param: Parameter<V>,
-): V | null {
-  const value = searchParams.get(param.name);
-  if (value === null) {
-    return param.defaultValue ?? null;
-  }
-  const parsedValue = param.codec ? param.codec.parse(value) : value;
-  return parsedValue as V;
-}
-
-export function useParameterValues(params: Parameter<any>[]): any {
-  const searchParams = useSearchParams();
-
-  return React.useMemo(() => {
-    return Object.fromEntries(
-      params.map((param) => [param.name, getParamValue(searchParams, param)]),
-    );
-  }, [params, searchParams]);
-}
-
-export function useParameterValue<V>(param: Parameter<V>): V | null {
-  const stableParams = React.useMemo(() => [param], [param]);
-  const values = useParameterValues(stableParams);
-  return values[param.name] ?? null;
-}
-
-export function useSetParameterValues(
-  params: Parameter<any>[],
-): (newValues: any) => void {
-  const navigate = useNavigate();
-  const searchParams = useSearchParams();
-  const paramMap = React.useMemo(
-    () => new Map(params.map((p) => [p.name, p])),
-    [params],
-  );
-  return React.useCallback(
-    (newValues) => {
-      const newParams = new URLSearchParams(searchParams);
-
-      for (const [name, value] of Object.entries(newValues)) {
-        const param = paramMap.get(name);
-        if (!param) {
-          continue;
-        } else if (value === null || value === param.defaultValue) {
-          newParams.delete(name);
-        }
-
-        let stringValue: string = param.codec
-          ? param.codec.stringify(value)
-          : (value as string);
-
-        newParams.set(param.name, stringValue);
-      }
-      navigate(`?${newParams.toString()}`, { history: "replace" });
-    },
-    [navigate, paramMap, searchParams],
-  );
-}
-
-export function useSetParameterValue<V>(
-  param: Parameter<V>,
-): (value: V | null) => void {
-  const stableParams = React.useMemo(() => [param], [param]);
-  const setValues = useSetParameterValues(stableParams);
-  return React.useCallback(
-    (value: V | null) => {
-      setValues({ [param.name]: value });
-    },
-    [param.name, setValues],
-  );
-}
-
 export type FilterOperatorBinding<R extends ValidDatum> = {
   [field in keyof R]: {
-    [operator: string]: Parameter;
+    [operator: string]: R[keyof R];
   };
 };
 
@@ -168,8 +65,7 @@ export function FilterBindingProvider({
       for (const [name, operatorParam] of Object.entries(
         dataProviderbindings,
       )) {
-        for (const [operator, param] of Object.entries(operatorParam)) {
-          const value = getParamValue(searchParams, param);
+        for (const [operator, value] of Object.entries(operatorParam)) {
           if (value !== null) {
             filter[name] ??= {};
             filter[name]![operator] = value;
@@ -179,7 +75,7 @@ export function FilterBindingProvider({
 
       return [dataProvider, filter];
     });
-  }, [bindings, searchParams]);
+  }, [bindings]);
 
   const prevFiltersRef = React.useRef(filters);
 
@@ -220,24 +116,6 @@ export function FilterBindingProvider({
   );
 }
 
-interface FilterBindingOptions {
-  field: string;
-  operator: string;
-  parameter: Parameter<any>;
-}
-
-function flattenFilterBinding(
-  filter: FilterOperatorBinding<any>,
-): FilterBindingOptions[] {
-  return Object.entries(filter).flatMap(([field, operators]) => {
-    return Object.entries(operators).map(([operator, parameter]) => ({
-      field,
-      operator,
-      parameter,
-    }));
-  });
-}
-
 export function useAppliedFilter<R extends Datum>(
   dataProvider: ResolvedDataProvider<R>,
 ): Filter<R> {
@@ -246,4 +124,139 @@ export function useAppliedFilter<R extends Datum>(
     () => filters.find(([dp]) => dp === dataProvider)?.[1] ?? {},
     [dataProvider, filters],
   );
+}
+
+type UseUrlQueryParameterStateOptions<V> = {
+  defaultValue?: V;
+  codec?: Codec<V>;
+} & (V extends string ? {} : { codec: Codec<V> });
+
+interface NavigationEvent {
+  destination: { url: URL };
+  navigationType: "push" | "replace";
+}
+
+const navigateEventHandlers = new Set<(event: NavigationEvent) => void>();
+
+if (typeof window !== "undefined") {
+  const origHistoryPushState = window.history.pushState;
+  const origHistoryReplaceState = window.history.replaceState;
+  const wrapHistoryMethod = (
+    navigationType: "push" | "replace",
+    origMethod: typeof origHistoryPushState,
+  ): typeof origHistoryPushState => {
+    return function (this: History, data, title, url?: string | URL | null) {
+      if (url === null || url === undefined) {
+        return;
+      }
+      const event = {
+        destination: { url: new URL(url, window.location.href) },
+        navigationType,
+      };
+      Promise.resolve().then(() => {
+        navigateEventHandlers.forEach((handler) => {
+          handler(event);
+        });
+      });
+      return origMethod.call(this, data, title, url);
+    };
+  };
+  window.history.pushState = wrapHistoryMethod("push", origHistoryPushState);
+  window.history.replaceState = wrapHistoryMethod(
+    "replace",
+    origHistoryReplaceState,
+  );
+}
+
+function navigate(url: string, options: { history?: "push" | "replace" } = {}) {
+  const history = options.history ?? "push";
+  if (history === "push") {
+    window.history.pushState(null, "", url);
+  } else {
+    window.history.replaceState(null, "", url);
+  }
+}
+
+function addNavigateEventListener(handler: (event: NavigationEvent) => void) {
+  navigateEventHandlers.add(handler);
+}
+
+function removeNavigateEventListener(
+  handler: (event: NavigationEvent) => void,
+) {
+  navigateEventHandlers.delete(handler);
+}
+
+function encode<V>(codec: Codec<V>, value: V | null): string | null {
+  return value === null ? null : codec.stringify(value);
+}
+
+function decode<V>(codec: Codec<V>, value: string | null): V | null {
+  return value === null ? null : codec.parse(value);
+}
+
+/**
+ * Works like the React.useState hook, but synchronises the state with a URL query parameter named "name".
+ * @param name
+ * @param options
+ */
+export function useUrlQueryParameterState<V = string>(
+  name: string,
+  ...args: V extends string
+    ? [UseUrlQueryParameterStateOptions<V>?]
+    : [UseUrlQueryParameterStateOptions<V>]
+): [V | null, (newValue: V | null) => void] {
+  const [options] = args;
+  const subscribe = React.useCallback((cb: () => void) => {
+    const handler = (event: NavigationEvent) => {
+      cb();
+    };
+    addNavigateEventListener(handler);
+    return () => {
+      removeNavigateEventListener(handler);
+    };
+  }, []);
+  const getSnapshot = React.useCallback(() => {
+    return new URL(window.location.href).searchParams.get(name);
+  }, [name]);
+  const getServerSnapshot = React.useCallback(() => null, []);
+  const rawValue = React.useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  );
+  const setValue = React.useCallback(
+    (value: V | null) => {
+      const url = new URL(window.location.href);
+      const stringValue = options?.codec
+        ? encode(options.codec, value)
+        : (value as string);
+
+      if (stringValue === null) {
+        url.searchParams.delete(name);
+      } else {
+        const defaultValue = options?.defaultValue ?? null;
+        const stringDefaultValue = options?.codec
+          ? encode(options.codec, defaultValue)
+          : defaultValue;
+
+        if (stringValue === stringDefaultValue) {
+          url.searchParams.delete(name);
+        } else {
+          url.searchParams.set(name, stringValue);
+        }
+      }
+
+      navigate(url.toString(), { history: "replace" });
+    },
+    [name, options?.codec, options?.defaultValue],
+  );
+  const value = React.useMemo(
+    () =>
+      options?.codec && typeof rawValue === "string"
+        ? options.codec.parse(rawValue)
+        : (rawValue as V),
+    [options?.codec, rawValue],
+  );
+  return [value ?? options?.defaultValue ?? null, setValue];
 }

@@ -1,26 +1,30 @@
 "use client";
 
 import * as React from "react";
+import { Dashboard, DataGrid, LineChart, BarChart } from "@/lib/dash/client";
 import {
-  Dashboard,
-  DataGrid,
-  LineChart,
-  ParameterSelect,
-  BarChart,
-} from "@/lib/dash/client";
-import { Box, Container, Stack, Toolbar, Typography } from "@mui/material";
-import { createUrlParameter } from "@/lib/dash/filter";
+  Box,
+  Container,
+  Stack,
+  TextField,
+  Toolbar,
+  Typography,
+} from "@mui/material";
+import { useUrlQueryParameterState } from "@/lib/dash/filter";
 import { Metric } from "@/lib/dash/Metric";
 import Grid from "@mui/material/Unstable_Grid2/Grid2";
 import { CITIES, forecast } from "./data";
-
-const cityParameter = createUrlParameter<string>("city", {
-  defaultValue: CITIES.keys().next().value,
-});
+import { MenuItem } from "@mui/material";
 
 const FORECAST_X_AXIS = [{ dataKey: "time" }];
 
+const DEFAULT_CITY = [...CITIES.keys()][0];
+
 export default function DashboardContent() {
+  const [city, setCity] = useUrlQueryParameterState("city", {
+    defaultValue: DEFAULT_CITY,
+  });
+
   return (
     <Dashboard
       bindings={[
@@ -28,7 +32,7 @@ export default function DashboardContent() {
           forecast,
           {
             city: {
-              eq: cityParameter,
+              eq: city,
             },
           },
         ],
@@ -39,10 +43,18 @@ export default function DashboardContent() {
           <Toolbar disableGutters>
             <Typography variant="h4">Weather Forecast</Typography>
             <Box sx={{ flexGrow: 1 }} />
-            <ParameterSelect
-              options={Array.from(CITIES.keys())}
-              parameter={cityParameter}
-            />
+            <TextField
+              select
+              label="City"
+              value={city}
+              onChange={(event) => setCity(event.target.value)}
+            >
+              {Array.from(CITIES.keys(), (city) => (
+                <MenuItem key={city} value={city}>
+                  {city}
+                </MenuItem>
+              ))}
+            </TextField>
           </Toolbar>
           <DataGrid dataProvider={forecast} pagination autoPageSize />
           <Box>

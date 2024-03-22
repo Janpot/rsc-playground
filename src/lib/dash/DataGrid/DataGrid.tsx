@@ -81,7 +81,6 @@ function getColumnsFromFields<R extends Datum>(
 export function DataGrid<R extends Datum>({
   dataProvider,
   columns: columnsProp,
-  getRowId: getRowIdProp,
   ...props
 }: DataGridProps<R>) {
   const [mounted, setMounted] = React.useState(false);
@@ -99,26 +98,21 @@ export function DataGrid<R extends Datum>({
     return data?.rows.map((row, index) => ({ ...row, _index: index })) ?? [];
   }, [data]);
 
-  const getRowId = React.useMemo(() => {
-    return (
-      getRowIdProp ??
-      ((row: any) => {
-        return Object.prototype.hasOwnProperty.call(row, "id")
-          ? row.id
-          : row._index;
-      })
-    );
-  }, [getRowIdProp]);
-
   return (
     <Box sx={{ height: 400, position: "relative" }}>
       {mounted ? (
         <>
           <DataGridPro
-            getRowId={getRowId}
             rows={rows}
             columns={columns}
             loading={loading}
+            initialState={{
+              columns: {
+                columnVisibilityModel: {
+                  id: false,
+                },
+              },
+            }}
             {...props}
           />
           {error ? (
