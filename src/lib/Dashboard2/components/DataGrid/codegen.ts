@@ -12,7 +12,7 @@ export function generateCode(
   return `
   function ${name} () {
     return (
-      <Box sx={{ width: '100%', minHeight: 300, height: '100%' }}>
+      <Box sx={{ width: '100%', height: '100%' }}>
         <DataGridPro rows={[]} columns={[]} />
       </Box>
     );

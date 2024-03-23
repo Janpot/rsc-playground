@@ -1,15 +1,26 @@
 import invariant from "invariant";
-import { Paper, Typography } from "@mui/material";
+import {
+  Paper,
+  Typography,
+  Card,
+  CardContent,
+  CardHeader,
+} from "@mui/material";
 import "react-grid-layout/css/styles.css";
 import Grid from "@mui/material/Unstable_Grid2";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import * as xCharts from "@mui/x-charts";
 import * as xDataGridPro from "@mui/x-data-grid-pro";
+import GridLayout, * as gridLayout from "react-grid-layout";
 
 export const IMPORTS: Record<string, unknown> = {
+  "react-grid-layout": Object.assign(GridLayout, gridLayout),
   "@mui/material/Unstable_Grid2": Grid,
   "@mui/material/Box": Box,
+  "@mui/material/Card": Card,
+  "@mui/material/CardContent": CardContent,
+  "@mui/material/CardHeader": CardHeader,
   "@mui/material/Stack": Stack,
   "@mui/material/Paper": Paper,
   "@mui/material/Typography": Typography,

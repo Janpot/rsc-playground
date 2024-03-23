@@ -6,7 +6,8 @@ export function generateCode(
   props: DashboardChartProps,
   ctx: ModuleContext,
 ): string {
-  ctx.requireImport("@mui/material/Paper", { default: "Paper" });
+  ctx.requireImport("@mui/material/Card", { default: "Card" });
+  ctx.requireImport("@mui/material/CardContent", { default: "CardContent" });
   ctx.requireImport("@mui/material/Typography", { default: "Typography" });
   ctx.requireImport("@mui/x-charts", {
     ResponsiveChartContainer: "ResponsiveChartContainer",
@@ -18,16 +19,10 @@ export function generateCode(
   return `
   function ${name} () {
     return (
-      <Paper
-        sx={{
-          width: "100%",
-          minHeight: 300,
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
+      <Card variant="outlined" sx={{ width: "100%", height: "100%" }}>
+        <CardContent sx={{ width: "100%", height: "100%", display: 'flex', flexDirection: 'column' }}>
         <Typography sx={{ mx: 2, my: 1 }}>${props.title ?? "(untitled)"}</Typography>
+        <Box sx={{ flex: 1, minHeight: 0 }}>
         <ResponsiveChartContainer
           series={[
             {
@@ -54,12 +49,14 @@ export function generateCode(
           ]}
         >
           <BarPlot skipAnimation />
-          <LinePlot skipAnimation id="line-2" />
+          <LinePlot id="line-2" />
           <LinePlot id="line-1" />
-          <MarkPlot skipAnimation />
+          <MarkPlot  />
           <ChartsXAxis label="X axis" position="bottom" axisId="x-axis-id" />
         </ResponsiveChartContainer>
-      </Paper>
+        </Box>
+        </CardContent>
+      </Card>
     );
   }
 `;

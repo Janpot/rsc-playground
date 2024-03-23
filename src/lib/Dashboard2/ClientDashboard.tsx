@@ -5,27 +5,23 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import React from "react";
 import "react-grid-layout/css/styles.css";
-import { DashboardConfig } from "./schema";
+import { DashboardConfig, Layout } from "./schema";
 import useResizeObserver from "use-resize-observer";
 import { DashboardComponent } from "./components";
 import { useRunner } from "react-runner";
-import Grid from "@mui/material/Unstable_Grid2";
 import Box from "@mui/material/Box";
-import Stack from "@mui/material/Stack";
-import * as xCharts from "@mui/x-charts";
-import * as xDataGridPro from "@mui/x-data-grid-pro";
-import AddIcon from "@mui/icons-material/Add";
-import invariant from "invariant";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { IMPORTS, ModuleContext, createModuleContext } from "./codegen";
+import { Layout as ReactGridLayout } from "react-grid-layout";
 
 const DASHBOARD_OBJECT_TOOLS_CLASS = "dashboard-object-tools";
+const DRAGGABLE_HANLDE_CLASS = "draggable-handle";
 
 const ComponentsContext = React.createContext<Map<string, DashboardComponent>>(
   new Map(),
 );
 
 const DashboardConfigContext = React.createContext<DashboardConfig>({
-  layout: { rows: [] },
   objects: {},
 });
 
@@ -36,6 +32,7 @@ const SetDashboardConfigContext = React.createContext<
 interface DashboardObject<P> {
   kind: string;
   props?: P;
+  layout: Layout;
 }
 
 interface RenderedComponentEditorProps<P> {
@@ -119,38 +116,42 @@ export interface GenerateContext {
 function generateDashboardCode(config: DashboardConfig, ctx: GenerateContext) {
   ctx.module.requireImport("@mui/material/Box", { default: "Box" });
   ctx.module.requireImport("@mui/material/Stack", { default: "Stack" });
+  ctx.module.requireImport("react-grid-layout", {
+    default: "GridLayout",
+    WidthProvider: "WidthProvider",
+  });
 
   return `
+    const ReactGridLayout = WidthProvider(GridLayout);
     export default function MyDashboard() {
       return (
-        <Stack sx={{ p:4 }} spacing={4}>
-      ${config.layout.rows
-        .map((row, rowIndex) => {
-          ctx.module.requireImport("@mui/material/Unstable_Grid2", {
-            default: "Grid",
-          });
-          let rowContent: string;
-          if (row.items.length <= 0) {
-            return "{__runtime.renderEmptyRowContent()}";
-          }
-          return `<Grid container spacing={4}>${row.items
-            .map((item, itemIndex) => {
-              if (config.objects[item.id]) {
-                return `
-                <Grid xs sx={{ position: 'relative' }}>
-                <Object${item.id}  />
-                ${ctx.editMode ? `{__runtime.renderItemControls("${item.id}", ${rowIndex}, ${itemIndex})}` : ""}
+        <ReactGridLayout
+          rowHeight={100}
+          draggableHandle=".${DRAGGABLE_HANLDE_CLASS}"
+          cols={12}
+          isDraggable={${String(ctx.editMode)}}
+          isResizable={${String(ctx.editMode)}}
+          ${
+            ctx.editMode
+              ? `
+            onLayoutChange={__runtime.onLayoutChange}
+            onResizeStop={__runtime.onResizeStop}
 
-              </Grid>
-              `;
-              }
-              return "{__runtime.renderItemSlot()}";
-            })
-            .join("\n")}</Grid>`;
-        })
-        .join("\n")}
-      ${ctx.editMode ? `{__runtime.renderAddRow()}` : ""}
-        </Stack>
+          `
+              : ""
+          }
+
+        >
+          ${Array.from(Object.entries(config.objects), ([id, object], i) => {
+            ctx.module.requireImport("@mui/material/Box", { default: "Box" });
+            return `
+              <Box key="${id}" data-grid={${JSON.stringify(object.layout)}} sx={{ position: 'relative' }}>
+                <Object${id}  />
+                ${ctx.editMode ? `{__runtime.renderItemControls(${JSON.stringify(id)})}` : ""}
+              </Box>
+            `;
+          }).join("\n")}
+        </ReactGridLayout>
       )
     }
   `;
@@ -206,8 +207,6 @@ export default function ClientDashboard({
       module: createModuleContext(),
     };
 
-    console.log(input);
-
     const componentsCode = Array.from(
       Object.entries(input.objects),
       ([id, object]) => {
@@ -240,123 +239,56 @@ export default function ClientDashboard({
     return {
       import: IMPORTS,
       __runtime: {
-        renderAddRow: () => {
+        renderItemControls: (id: string) => {
           return (
-            <Box>
-              <Button
+            <Box
+              className={DASHBOARD_OBJECT_TOOLS_CLASS}
+              sx={{ position: "absolute", top: 0, right: 0 }}
+            >
+              <IconButton
+                size="small"
+                onClick={() => setEditedObject(id)}
+                disabled={editedObject === id}
+              >
+                <EditIcon fontSize="inherit" />
+              </IconButton>
+              <IconButton
+                size="small"
                 onClick={() => {
-                  setInput((prev) => ({
-                    ...prev,
-                    layout: {
-                      rows: [
-                        ...prev.layout.rows,
-                        {
-                          items: [],
-                        },
-                      ],
-                    },
-                  }));
+                  setInput((prev) => {
+                    return prev;
+                  });
                 }}
               >
-                Add Row
-              </Button>
+                <DeleteIcon fontSize="inherit" />
+              </IconButton>
+              <IconButton size="small" className={DRAGGABLE_HANLDE_CLASS}>
+                <DragIndicatorIcon fontSize="inherit" />
+              </IconButton>
             </Box>
           );
         },
-        renderEmptyRowContent: () => {
-          return (
-            <Grid xs>
-              <Box
-                sx={{
-                  outline: 1,
-                  outlineStyle: "dashed",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  p: 2,
-                }}
-              >
-                <Button>Add object</Button>
-              </Box>
-            </Grid>
-          );
-        },
-        renderItemSlot: () => {
-          return <Grid xs>Add item</Grid>;
-        },
-        renderItemControls: (
-          id: string,
-          rowIndex: number,
-          itemIndex: number,
-        ) => {
-          return (
-            <>
-              <Box
-                className={DASHBOARD_OBJECT_TOOLS_CLASS}
-                sx={{ position: "absolute", top: 0, right: 0 }}
-              >
-                <IconButton
-                  size="small"
-                  onClick={() => setEditedObject(id)}
-                  disabled={editedObject === id}
-                >
-                  <EditIcon fontSize="inherit" />
-                </IconButton>
-                <IconButton
-                  size="small"
-                  onClick={() => {
-                    setInput((prev) => {
-                      return prev;
-                    });
-                  }}
-                >
-                  <DeleteIcon fontSize="inherit" />
-                </IconButton>
-              </Box>
-              <Box
-                sx={{
-                  position: "absolute",
-                  right: 0,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "center",
-                  top: 0,
-                  bottom: 0,
-                  width: "20px",
-                }}
-              >
-                <div>
-                  <IconButton
-                    size="small"
-                    onClick={() => {
-                      setInput((prev) => {
-                        return {
-                          ...prev,
-                          layout: {
-                            ...prev.layout,
-                            rows: prev.layout.rows.map((row, i) => {
-                              if (i === rowIndex) {
-                                const newItems = [...row.items];
-                                newItems.splice(itemIndex + 1, 0, {
-                                  id: getItemId(),
-                                });
-                                return {
-                                  items: newItems,
-                                };
-                              }
-                              return row;
-                            }),
-                          },
-                        };
-                      });
-                    }}
-                  >
-                    <AddIcon />
-                  </IconButton>
-                </div>
-              </Box>
-            </>
-          );
+        onLayoutChange: (layout: ReactGridLayout[]) => {
+          setInput((prev) => {
+            const newObjects: DashboardConfig["objects"] = {};
+            for (const objectLayout of layout) {
+              const id = objectLayout.i;
+              const object = prev.objects[id];
+              if (object) {
+                newObjects[id] = {
+                  ...object,
+                  layout: {
+                    x: objectLayout.x,
+                    y: objectLayout.y,
+                    w: objectLayout.w,
+                    h: objectLayout.h,
+                  },
+                };
+              }
+            }
+
+            return { ...prev, objects: newObjects };
+          });
         },
       },
     };
@@ -367,8 +299,9 @@ export default function ClientDashboard({
     scope,
   });
 
-  // console.log(dashboardCode);
-  console.log("err", error);
+  if (error) {
+    console.log("err", error);
+  }
 
   return (
     <DashboardConfigContext.Provider value={input}>

@@ -1,27 +1,13 @@
 {
-  "layout": {
-    "rows": [
-      {
-        "items": [
-          {
-            "id": "item_1944744722"
-          },
-          {
-            "id": "item_3063588781"
-          },
-          {
-            "id": "item_2935414294"
-          }
-        ]
-      }
-    ]
-  },
   "objects": {
-    "item_2935414294": {
-      "kind": "DataGrid"
-    },
     "item_1944744722": {
-      "kind": "Chart"
+      "kind": "Chart",
+      "layout": {
+        "x": 1,
+        "y": 0,
+        "w": 5,
+        "h": 3
+      }
     }
   }
 }
