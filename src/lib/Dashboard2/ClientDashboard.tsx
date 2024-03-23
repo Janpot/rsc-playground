@@ -136,7 +136,6 @@ function generateDashboardCode(config: DashboardConfig, ctx: GenerateContext) {
               ? `
             onLayoutChange={__runtime.onLayoutChange}
             onResizeStop={__runtime.onResizeStop}
-
           `
               : ""
           }
@@ -315,6 +314,9 @@ export default function ClientDashboard({
                 height: "100%",
                 display: "flex",
                 flexDirection: "column",
+                ".react-grid-item": {
+                  transition: "none !important",
+                },
               }}
             >
               <Box

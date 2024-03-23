@@ -6,6 +6,7 @@ export function generateCode(
   props: DashboardChartProps,
   ctx: ModuleContext,
 ): string {
+  ctx.requireImport("@mui/material/Box", { default: "Box" });
   ctx.requireImport("@mui/material/Card", { default: "Card" });
   ctx.requireImport("@mui/material/CardContent", { default: "CardContent" });
   ctx.requireImport("@mui/material/Typography", { default: "Typography" });

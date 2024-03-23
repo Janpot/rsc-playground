@@ -7,6 +7,9 @@
         "y": 0,
         "w": 5,
         "h": 3
+      },
+      "props": {
+        "title": "My chart"
       }
     }
   }

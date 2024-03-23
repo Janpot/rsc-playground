@@ -77,18 +77,7 @@ export function Editor({ value, onChange }: EditorProps) {
     <Box sx={{ width: "100%", height: "100%" }}>
       <PanelGroup direction="horizontal">
         <Panel>
-          <PanelGroup direction="vertical">
-            <Panel>
-              <Box sx={{ width: "100%", height: "100%", p: 2 }}>{element}</Box>
-            </Panel>
-            <PanelResizeHandle />
-            <Panel defaultSize={30}>
-              <DataSourceEditor
-                value={input.data || DEFAULT_DATASOURCE}
-                onChange={(value) => setInput({ ...input, data: value })}
-              />
-            </Panel>
-          </PanelGroup>
+          <Box sx={{ width: "100%", height: "100%", p: 2 }}>{element}</Box>
         </Panel>
         <PanelResizeHandle />
         <Panel defaultSize={25}>
