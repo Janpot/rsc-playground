@@ -129,6 +129,7 @@ function generateDashboardCode(config: DashboardConfig, ctx: GenerateContext) {
           rowHeight={100}
           draggableHandle=".${DRAGGABLE_HANLDE_CLASS}"
           cols={12}
+          margin={[24, 24]}
           isDraggable={${String(ctx.editMode)}}
           isResizable={${String(ctx.editMode)}}
           ${
@@ -174,7 +175,21 @@ export default function ClientDashboard({
   const [editMode, setEditMode] = React.useState(false);
   const [input, setInput] = React.useState(value);
 
-  const handleAddComponent = (kind: string) => () => {};
+  const handleAddComponent = (kind: string) => () => {
+    setInput((prev) => {
+      const id = getItemId();
+      return {
+        ...prev,
+        objects: {
+          ...prev.objects,
+          [id]: {
+            kind,
+            layout: { x: 0, y: 0, w: 4, h: 4 },
+          },
+        },
+      };
+    });
+  };
 
   const handleSave = React.useCallback(async () => {
     await saveConfig?.(input);
@@ -268,6 +283,7 @@ export default function ClientDashboard({
           );
         },
         onLayoutChange: (layout: ReactGridLayout[]) => {
+          console.log("change", layout);
           setInput((prev) => {
             const newObjects: DashboardConfig["objects"] = {};
             for (const objectLayout of layout) {

@@ -1,4 +1,4 @@
-import { Box, Stack, SxProps, TextField } from "@mui/material";
+import { Box, Stack, SxProps, TextField, Typography } from "@mui/material";
 import * as React from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "../../resizablePanels";
 import { useRunner } from "react-runner";
@@ -81,13 +81,17 @@ export function Editor({ value, onChange }: EditorProps) {
         </Panel>
         <PanelResizeHandle />
         <Panel defaultSize={25}>
-          <TextField
-            label="title"
-            value={value.title}
-            onChange={(event) =>
-              onChange({ ...value, title: event.target.value })
-            }
-          />
+          <Stack sx={{ width: "100%", height: "100%", p: 2 }} spacing={2}>
+            <Typography variant="h6">Chart options</Typography>
+            <TextField
+              label="title"
+              fullWidth
+              value={value.title}
+              onChange={(event) =>
+                onChange({ ...value, title: event.target.value })
+              }
+            />
+          </Stack>
         </Panel>
       </PanelGroup>
     </Box>

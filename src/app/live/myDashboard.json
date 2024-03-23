@@ -2,14 +2,32 @@
   "objects": {
     "item_1944744722": {
       "kind": "Chart",
+      "props": {
+        "title": "My chart"
+      },
       "layout": {
-        "x": 1,
+        "x": 5,
         "y": 0,
         "w": 5,
         "h": 3
-      },
-      "props": {
-        "title": "My chart"
+      }
+    },
+    "item_1064889118": {
+      "kind": "Chart",
+      "layout": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      }
+    },
+    "item_3566635867": {
+      "kind": "DataGrid",
+      "layout": {
+        "x": 4,
+        "y": 3,
+        "w": 6,
+        "h": 2
       }
     }
   }

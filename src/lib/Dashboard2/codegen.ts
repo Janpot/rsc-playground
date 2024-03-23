@@ -10,6 +10,8 @@ import "react-grid-layout/css/styles.css";
 import Grid from "@mui/material/Unstable_Grid2";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
+import * as styles from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import * as xCharts from "@mui/x-charts";
 import * as xDataGridPro from "@mui/x-data-grid-pro";
 import GridLayout, * as gridLayout from "react-grid-layout";
@@ -19,6 +21,8 @@ export const IMPORTS: Record<string, unknown> = {
   "@mui/material/Unstable_Grid2": Grid,
   "@mui/material/Box": Box,
   "@mui/material/Card": Card,
+  "@mui/material/styles": styles,
+  "@mui/material/useMediaQuery": useMediaQuery,
   "@mui/material/CardContent": CardContent,
   "@mui/material/CardHeader": CardHeader,
   "@mui/material/Stack": Stack,
