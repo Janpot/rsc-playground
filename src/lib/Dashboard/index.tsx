@@ -2,7 +2,7 @@ import * as React from "react";
 import * as fs from "fs/promises";
 import ClientDashboard from "./ClientDashboard";
 import { DashboardConfig, dashboardConfigSchema } from "./schema";
-import DEFAULT_COMPONENTS, { DashboardComponent } from "./components";
+import DEFAULT_COMPONENTS, { DashboardComponent } from "./dashboardComponents";
 
 async function getDashboardConfig(filePath: string): Promise<DashboardConfig> {
   try {
@@ -13,6 +13,7 @@ async function getDashboardConfig(filePath: string): Promise<DashboardConfig> {
     if (err.code === "ENOENT") {
       return {
         objects: {},
+        data: {},
       };
     }
     throw err;

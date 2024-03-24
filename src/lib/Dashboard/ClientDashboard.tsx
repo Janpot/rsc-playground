@@ -7,14 +7,15 @@ import React from "react";
 import "react-grid-layout/css/styles.css";
 import { DashboardConfig, Layout } from "./schema";
 import useResizeObserver from "use-resize-observer";
-import { DashboardComponent } from "./components";
+import { DashboardComponent } from "./dashboardComponents";
 import { useRunner } from "react-runner";
 import Box from "@mui/material/Box";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { IMPORTS, ModuleContext, createModuleContext } from "./codegen";
 import { Layout as ReactGridLayout } from "react-grid-layout";
-import { Panel, PanelGroup, PanelResizeHandle } from "./resizablePanels";
+
 import DataEditor from "./DataEditor";
+import invariant from "invariant";
 
 const DASHBOARD_OBJECT_TOOLS_CLASS = "dashboard-object-tools";
 const DRAGGABLE_HANLDE_CLASS = "draggable-handle";
@@ -25,6 +26,7 @@ const ComponentsContext = React.createContext<Map<string, DashboardComponent>>(
 
 const DashboardConfigContext = React.createContext<DashboardConfig>({
   objects: {},
+  data: {},
 });
 
 const SetDashboardConfigContext = React.createContext<
@@ -152,9 +154,22 @@ function generateDashboardCode(config: DashboardConfig, ctx: GenerateContext) {
   `;
 }
 
+type View =
+  | {
+      kind: "dashboard";
+    }
+  | {
+      kind: "object";
+      id: string;
+    }
+  | {
+      kind: "data";
+    };
+
 function getItemId() {
   return `item_${crypto.getRandomValues(new Uint32Array(1))[0]}`;
 }
+
 export interface ClientDashboardProps {
   value: DashboardConfig;
   saveConfig?: (value: DashboardConfig) => void;
@@ -168,8 +183,9 @@ export default function ClientDashboard({
 }: ClientDashboardProps) {
   const editable: boolean = !!saveConfig;
   const [editMode, setEditMode] = React.useState(false);
-  const [dataEditorOpen, setDataEditorOpen] = React.useState(false);
   const [input, setInput] = React.useState(value);
+
+  const [view, setView] = React.useState<View>({ kind: "dashboard" });
 
   const handleAddComponent = (kind: string) => () => {
     setInput((prev) => {
@@ -193,8 +209,6 @@ export default function ClientDashboard({
 
   const { ref: rootRef, width: rootWidth } =
     useResizeObserver<HTMLDivElement>();
-
-  const [editedObject, setEditedObject] = React.useState<string | null>(null);
 
   const dashboardCode = React.useMemo(() => {
     const imports = new Map<string, Record<string, string>>();
@@ -257,8 +271,7 @@ export default function ClientDashboard({
             >
               <IconButton
                 size="small"
-                onClick={() => setEditedObject(id)}
-                disabled={editedObject === id}
+                onClick={() => setView({ kind: "object", id })}
               >
                 <EditIcon fontSize="inherit" />
               </IconButton>
@@ -305,7 +318,7 @@ export default function ClientDashboard({
         },
       },
     };
-  }, [editedObject]);
+  }, []);
 
   const { element: dashboardElm, error } = useRunner({
     code: dashboardCode,
@@ -336,7 +349,7 @@ export default function ClientDashboard({
               <Toolbar variant="dense">
                 {editMode ? (
                   <>
-                    {editedObject ? null : (
+                    {view.kind === "dashboard" ? (
                       <>
                         <Button onClick={handleAddComponent("Chart")}>
                           Add Chart
@@ -345,9 +358,9 @@ export default function ClientDashboard({
                           Add DataGrid
                         </Button>
                       </>
-                    )}
+                    ) : null}
                     <Box sx={{ flex: 1 }} />
-                    <Button onClick={() => setDataEditorOpen((open) => !open)}>
+                    <Button onClick={() => setView({ kind: "data" })}>
                       Data Editor
                     </Button>
                     <Button onClick={handleSave}>Save</Button>
@@ -357,24 +370,29 @@ export default function ClientDashboard({
                   <Button onClick={() => setEditMode(true)}>Edit</Button>
                 )}
               </Toolbar>
-              {editedObject ? (
-                <ComponentEditor
-                  id={editedObject}
-                  onClose={() => setEditedObject(null)}
-                />
-              ) : (
-                <PanelGroup direction="vertical">
-                  <Panel>{dashboardElm}</Panel>
-                  {editMode && dataEditorOpen ? (
-                    <>
-                      <PanelResizeHandle />
-                      <Panel>
-                        <DataEditor value={input} onChange={setInput} />
-                      </Panel>
-                    </>
-                  ) : null}
-                </PanelGroup>
-              )}
+              {(() => {
+                switch (view.kind) {
+                  case "object":
+                    return (
+                      <ComponentEditor
+                        id={view.id}
+                        onClose={() => setView({ kind: "dashboard" })}
+                      />
+                    );
+                  case "data":
+                    return (
+                      <DataEditor
+                        value={input}
+                        onChange={setInput}
+                        onClose={() => setView({ kind: "dashboard" })}
+                      />
+                    );
+                  case "dashboard":
+                    return dashboardElm;
+                  default:
+                    invariant(false, "Invalid view");
+                }
+              })()}
             </Box>
           ) : (
             dashboardElm

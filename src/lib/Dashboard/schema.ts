@@ -9,6 +9,30 @@ export const layoutSchema = z.object({
 
 export type Layout = z.infer<typeof layoutSchema>;
 
+export const restDataProviderSchema = z.object({
+  kind: z.literal("rest"),
+  name: z.string(),
+  method: z.string().default("GET"),
+  url: z.string(),
+  headers: z
+    .array(
+      z.object({
+        name: z.string(),
+        value: z.string(),
+      }),
+    )
+    .default([]),
+  dataPath: z.string(),
+  columns: z
+    .array(
+      z.object({
+        name: z.string(),
+        path: z.string(),
+      }),
+    )
+    .default([]),
+});
+
 export const dashboardConfigSchema = z.object({
   objects: z
     .record(
@@ -19,6 +43,7 @@ export const dashboardConfigSchema = z.object({
       }),
     )
     .default({}),
+  data: z.record(restDataProviderSchema).default({}),
 });
 
 export type DashboardConfig = z.infer<typeof dashboardConfigSchema>;

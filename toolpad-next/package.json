@@ -1,0 +1,83 @@
+{
+  "name": "@mui/toolpad-next",
+  "version": "0.1.27",
+  "license": "MIT",
+  "bin": {
+    "toolpad-next": "./cli.js"
+  },
+  "scripts": {
+    "prepare": "node ./dist/cli/prepare.js",
+    "lint": "prettier --check .",
+    "fix": "prettier --write .",
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "check-types": "tsup && tsc --noEmit",
+    "test": "jest"
+  },
+  "files": [
+    "dist",
+    "cli.js"
+  ],
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./dist/cli/index.d.ts",
+        "default": "./dist/cli/index.js"
+      }
+    },
+    "./runtime": {
+      "require": {
+        "types": "./dist/runtime/index.d.cts",
+        "default": "./dist/runtime/index.cjs"
+      },
+      "import": {
+        "types": "./dist/runtime/index.d.ts",
+        "default": "./dist/runtime/index.js"
+      }
+    }
+  },
+  "dependencies": {
+    "@mui/icons-material": "5.14.8",
+    "@mui/lab": "5.0.0-alpha.143",
+    "@mui/toolpad-utils": "0.1.27",
+    "chokidar": "3.5.3",
+    "dotenv": "16.3.1",
+    "esbuild": "0.18.16",
+    "get-port": "7.0.0",
+    "glob": "10.3.3",
+    "invariant": "2.2.4",
+    "path-browserify": "1.0.1",
+    "prettier": "3.0.0",
+    "sucrase": "3.34.0",
+    "superjson": "1.13.1",
+    "ws": "8.13.0",
+    "yaml": "2.3.2",
+    "yaml-diff-patch": "2.0.0",
+    "yargs": "17.7.2",
+    "zod": "3.21.4",
+    "zod-validation-error": "1.3.1"
+  },
+  "peerDependencies": {
+    "@emotion/react": "^11.9.0",
+    "@emotion/styled": "^11.8.1",
+    "@mui/material": "^5.4.4",
+    "@mui/system": "^5.4.4",
+    "react": "^17.0.0 || ^18.0.0",
+    "react-dom": "^17.0.0 || ^18.0.0"
+  },
+  "devDependencies": {
+    "@types/glob": "8.1.0",
+    "@types/invariant": "2.2.35",
+    "@types/path-browserify": "1.0.0",
+    "@types/prettier": "2.7.3",
+    "@types/ws": "8.5.5",
+    "typescript": "5.1.6"
+  },
+  "typings": "./index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "gitHead": "8c10fa4108d0f108a49fb20daa15f090fe321be6"
+}
