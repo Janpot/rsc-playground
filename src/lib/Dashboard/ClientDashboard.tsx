@@ -265,7 +265,9 @@ export default function ClientDashboard({
                 size="small"
                 onClick={() => {
                   setInput((prev) => {
-                    return prev;
+                    const newObjects = { ...prev.objects };
+                    delete newObjects[id];
+                    return { ...prev, objects: newObjects };
                   });
                 }}
               >
