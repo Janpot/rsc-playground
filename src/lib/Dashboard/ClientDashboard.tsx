@@ -1,22 +1,22 @@
 "use client";
 
-import { Box, Button, IconButton, Paper, Toolbar } from "@mui/material";
+import { Button, IconButton, Paper, Toolbar, Typography } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
-import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import EditIcon from "@mui/icons-material/Edit";
 import React from "react";
-import {
-  Responsive as ResponsiveGridLayout,
-  Layout,
-  Layouts,
-} from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
-import { DashboardConfig, ObjectLayouts } from "./schema";
+import { DashboardConfig, Layout } from "./schema";
 import useResizeObserver from "use-resize-observer";
 import { DashboardComponent } from "./components";
+import { useRunner } from "react-runner";
+import Box from "@mui/material/Box";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import { IMPORTS, ModuleContext, createModuleContext } from "./codegen";
+import { Layout as ReactGridLayout } from "react-grid-layout";
+import { Panel, PanelGroup, PanelResizeHandle } from "./resizablePanels";
 
 const DASHBOARD_OBJECT_TOOLS_CLASS = "dashboard-object-tools";
-const DRAGGABLE_HANDLE_CLASS = "react-grid-draggable-handle";
+const DRAGGABLE_HANLDE_CLASS = "draggable-handle";
 
 const ComponentsContext = React.createContext<Map<string, DashboardComponent>>(
   new Map(),
@@ -33,7 +33,7 @@ const SetDashboardConfigContext = React.createContext<
 interface DashboardObject<P> {
   kind: string;
   props?: P;
-  layouts: ObjectLayouts;
+  layout: Layout;
 }
 
 interface RenderedComponentEditorProps<P> {
@@ -109,35 +109,51 @@ function ComponentEditor({ id, onClose }: ComponentEditorProps) {
   );
 }
 
-interface RenderedComponentProps {
-  value: DashboardConfig["objects"][number];
+export interface GenerateContext {
+  editMode: boolean;
+  module: ModuleContext;
 }
 
-function RenderedComponent({ value }: RenderedComponentProps) {
-  const components = React.useContext(ComponentsContext);
-  const componentDef = components.get(value.kind);
+function generateDashboardCode(config: DashboardConfig, ctx: GenerateContext) {
+  ctx.module.requireImport("@mui/material/Box", { default: "Box" });
+  ctx.module.requireImport("@mui/material/Stack", { default: "Stack" });
+  ctx.module.requireImport("react-grid-layout", {
+    default: "GridLayout",
+    WidthProvider: "WidthProvider",
+  });
 
-  if (!componentDef) {
-    return (
-      <Paper
-        sx={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          textAlign: "center",
-          padding: 1,
-        }}
-      >
-        No component found for &quot;{value.kind}&quot;
-      </Paper>
-    );
-  }
+  return `
+    const ReactGridLayout = WidthProvider(GridLayout);
+    export default function MyDashboard() {
+      return (
+        <ReactGridLayout
+          rowHeight={100}
+          draggableHandle=".${DRAGGABLE_HANLDE_CLASS}"
+          cols={12}
+          margin={[24, 24]}
+          isDraggable={${String(ctx.editMode)}}
+          isResizable={${String(ctx.editMode)}}
+          ${ctx.editMode ? "onLayoutChange={__runtime.onLayoutChange}" : ""}
 
-  return <componentDef.Component {...value.props} />;
+        >
+          ${Array.from(Object.entries(config.objects), ([id, object], i) => {
+            ctx.module.requireImport("@mui/material/Box", { default: "Box" });
+            return `
+              <Box key="${id}" data-grid={${JSON.stringify(object.layout)}} sx={{ position: 'relative' }}>
+                <Object${id}  />
+                ${ctx.editMode ? `{__runtime.renderItemControls(${JSON.stringify(id)})}` : ""}
+              </Box>
+            `;
+          }).join("\n")}
+        </ReactGridLayout>
+      )
+    }
+  `;
 }
 
+function getItemId() {
+  return `item_${crypto.getRandomValues(new Uint32Array(1))[0]}`;
+}
 export interface ClientDashboardProps {
   value: DashboardConfig;
   saveConfig?: (value: DashboardConfig) => void;
@@ -151,25 +167,19 @@ export default function ClientDashboard({
 }: ClientDashboardProps) {
   const editable: boolean = !!saveConfig;
   const [editMode, setEditMode] = React.useState(false);
+  const [dataEditorOpen, setDataEditorOpen] = React.useState(false);
   const [input, setInput] = React.useState(value);
 
-  const [responsiveState, setResponsiveState] = React.useState<{
-    breakpoint: string;
-    cols: number;
-  }>();
-
   const handleAddComponent = (kind: string) => () => {
-    const id = `item-${crypto.getRandomValues(new Uint32Array(1))[0]}`;
     setInput((prev) => {
+      const id = getItemId();
       return {
         ...prev,
         objects: {
           ...prev.objects,
           [id]: {
             kind,
-            layouts: {
-              [responsiveState?.breakpoint ?? "lg"]: { x: 0, y: 0, w: 2, h: 2 },
-            },
+            layout: { x: 0, y: 0, w: 4, h: 4 },
           },
         },
       };
@@ -180,163 +190,128 @@ export default function ClientDashboard({
     await saveConfig?.(input);
   }, [input, saveConfig]);
 
-  const handleLayoutChange = React.useCallback(
-    (layout: Layout[], layouts: Layouts) => {
-      const layoutMaps = new Map(
-        Object.entries(layouts).map(([breakpoint, layout]) => [
-          breakpoint,
-          new Map(layout.map((item) => [item.i, item])),
-        ]),
-      );
-      setInput((prev) => {
-        return {
-          ...prev,
-          objects: Object.fromEntries(
-            Object.entries(prev.objects).map(([id, object]) => {
-              const layouts: ObjectLayouts = {};
-              for (const [breakpoint, layoutMap] of layoutMaps) {
-                const item = layoutMap.get(id);
-                if (item) {
-                  layouts[breakpoint] = {
-                    x: item.x,
-                    y: item.y,
-                    w: item.w,
-                    h: item.h,
-                  };
-                }
-              }
-              return [id, { ...object, layouts }];
-            }),
-          ),
-        };
-      });
-    },
-    [],
-  );
-
-  const layouts: Layouts = React.useMemo(() => {
-    const result: Layouts = {};
-
-    for (const [id, object] of Object.entries(input.objects)) {
-      for (const [breakpoint, layout] of Object.entries(object.layouts)) {
-        result[breakpoint] ??= [];
-        result[breakpoint].push({
-          i: id,
-          x: layout.x,
-          y: layout.y,
-          w: layout.w,
-          h: layout.h,
-          resizeHandles: ["se"],
-        });
-      }
-    }
-
-    return result;
-  }, [input.objects]);
-
-  const handleBreakpointChange = React.useCallback(
-    (breakpoint: string, cols: number) => {
-      setResponsiveState({ breakpoint, cols });
-    },
-    [],
-  );
-
   const { ref: rootRef, width: rootWidth } =
     useResizeObserver<HTMLDivElement>();
 
   const [editedObject, setEditedObject] = React.useState<string | null>(null);
 
-  const { ref: dashboardContentRef, width: dashboardWidth } =
-    useResizeObserver<HTMLDivElement>();
+  const dashboardCode = React.useMemo(() => {
+    const imports = new Map<string, Record<string, string>>();
+    const requireImport = (
+      specifier: string,
+      names: Record<string, string>,
+    ) => {
+      let existingNames = imports.get(specifier);
+      if (!existingNames) {
+        existingNames = {};
+        imports.set(specifier, existingNames);
+      }
+      for (const [name, specifier] of Object.entries(names)) {
+        existingNames[name] = specifier;
+      }
+    };
 
-  const dashboardContent = (
-    <Box
-      ref={dashboardContentRef}
-      sx={{
-        width: "100%",
-        height: "100%",
-        ".react-grid-layout, .react-grid-item": {
-          transition: "unset",
-        },
-      }}
-    >
-      {dashboardWidth ? (
-        <ResponsiveGridLayout
-          width={dashboardWidth}
-          className="layout"
-          layouts={layouts}
-          onBreakpointChange={handleBreakpointChange}
-          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-          cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-          onLayoutChange={handleLayoutChange}
-          isResizable={editMode}
-          isDraggable={editMode}
-          isDroppable={editMode}
-          draggableHandle={`.${DRAGGABLE_HANDLE_CLASS}`}
-        >
-          {Object.entries(input.objects).map(([id, value]) => {
-            return (
-              <Box
-                key={id}
-                sx={{
-                  position: "relative",
-                  [`.${DASHBOARD_OBJECT_TOOLS_CLASS}`]: {
-                    display: "none",
-                  },
-                  [`&:hover .${DASHBOARD_OBJECT_TOOLS_CLASS}`]: {
-                    display: "block",
-                  },
+    const ctx = {
+      editMode,
+      module: createModuleContext(),
+    };
+
+    const componentsCode = Array.from(
+      Object.entries(input.objects),
+      ([id, object]) => {
+        const component = components.get(object.kind);
+        const name = `Object${id}`;
+        if (!component?.generateCode) {
+          requireImport("@mui/material/Paper", { default: "Paper" });
+          return `const ${name} = () => <Paper sx={{width:'100%', height: '100%'}}>Not found</Paper>`;
+        }
+        return component.generateCode(
+          name,
+          object.props ?? component.initialProps,
+          ctx.module,
+        );
+      },
+    ).join("\n\n");
+
+    const code = generateDashboardCode(input, ctx);
+
+    return `
+      ${ctx.module.renderImports()}
+
+      ${componentsCode}
+
+      ${code}
+     `;
+  }, [components, editMode, input]);
+
+  const scope = React.useMemo(() => {
+    return {
+      import: IMPORTS,
+      __runtime: {
+        renderItemControls: (id: string) => {
+          return (
+            <Box
+              className={DASHBOARD_OBJECT_TOOLS_CLASS}
+              sx={{ position: "absolute", top: 0, right: 0 }}
+            >
+              <IconButton
+                size="small"
+                onClick={() => setEditedObject(id)}
+                disabled={editedObject === id}
+              >
+                <EditIcon fontSize="inherit" />
+              </IconButton>
+              <IconButton
+                size="small"
+                onClick={() => {
+                  setInput((prev) => {
+                    return prev;
+                  });
                 }}
               >
-                <RenderedComponent value={value} />
-                {editMode ? (
-                  <Box
-                    className={DASHBOARD_OBJECT_TOOLS_CLASS}
-                    sx={{ position: "absolute", top: 0, right: 0 }}
-                  >
-                    <IconButton
-                      size="small"
-                      onClick={() => setEditedObject(id)}
-                      disabled={editedObject === id}
-                    >
-                      <EditIcon fontSize="inherit" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        setInput((prev) => {
-                          return {
-                            ...prev,
-                            objects: Object.fromEntries(
-                              Object.entries(prev.objects).filter(
-                                ([key]) => key !== id,
-                              ),
-                            ),
-                          };
-                        });
-                      }}
-                    >
-                      <DeleteIcon fontSize="inherit" />
-                    </IconButton>
-                    <Box
-                      className={DRAGGABLE_HANDLE_CLASS}
-                      sx={{
-                        display: "inline-flex",
-                        padding: "5px",
-                        verticalAlign: "middle",
-                      }}
-                    >
-                      <DragIndicatorIcon fontSize="small" />
-                    </Box>
-                  </Box>
-                ) : null}
-              </Box>
-            );
-          })}
-        </ResponsiveGridLayout>
-      ) : null}
-    </Box>
-  );
+                <DeleteIcon fontSize="inherit" />
+              </IconButton>
+              <IconButton size="small" className={DRAGGABLE_HANLDE_CLASS}>
+                <DragIndicatorIcon fontSize="inherit" />
+              </IconButton>
+            </Box>
+          );
+        },
+        onLayoutChange: (layout: ReactGridLayout[]) => {
+          console.log("change", layout);
+          setInput((prev) => {
+            const newObjects: DashboardConfig["objects"] = {};
+            for (const objectLayout of layout) {
+              const id = objectLayout.i;
+              const object = prev.objects[id];
+              if (object) {
+                newObjects[id] = {
+                  ...object,
+                  layout: {
+                    x: objectLayout.x,
+                    y: objectLayout.y,
+                    w: objectLayout.w,
+                    h: objectLayout.h,
+                  },
+                };
+              }
+            }
+
+            return { ...prev, objects: newObjects };
+          });
+        },
+      },
+    };
+  }, [editedObject]);
+
+  const { element: dashboardElm, error } = useRunner({
+    code: dashboardCode,
+    scope,
+  });
+
+  if (error) {
+    console.log("err", error);
+  }
 
   return (
     <DashboardConfigContext.Provider value={input}>
@@ -350,49 +325,54 @@ export default function ClientDashboard({
                 height: "100%",
                 display: "flex",
                 flexDirection: "column",
+                ".react-grid-item": {
+                  transition: "none !important",
+                },
               }}
             >
-              <Box
-                sx={{
-                  flex: 1,
-                  minHeight: 0,
-                  position: "relative",
-                  overflow: "auto",
-                }}
-              >
-                {editedObject ? (
-                  <ComponentEditor
-                    id={editedObject}
-                    onClose={() => setEditedObject(null)}
-                  />
-                ) : (
+              <Toolbar variant="dense">
+                {editMode ? (
                   <>
-                    <Toolbar variant="dense">
-                      <Box sx={{ flex: 1 }} />
-                      {editMode ? (
-                        <>
-                          <Button onClick={handleAddComponent("Chart")}>
-                            Add Chart
-                          </Button>
-                          <Button onClick={handleAddComponent("DataGrid")}>
-                            Add DataGrid
-                          </Button>
-                          <Button onClick={handleSave}>Save</Button>
-                          <Button onClick={() => setEditMode(false)}>
-                            Close
-                          </Button>
-                        </>
-                      ) : (
-                        <Button onClick={() => setEditMode(true)}>Edit</Button>
-                      )}
-                    </Toolbar>
-                    {dashboardContent}
+                    {editedObject ? null : (
+                      <>
+                        <Button onClick={handleAddComponent("Chart")}>
+                          Add Chart
+                        </Button>
+                        <Button onClick={handleAddComponent("DataGrid")}>
+                          Add DataGrid
+                        </Button>
+                      </>
+                    )}
+                    <Box sx={{ flex: 1 }} />
+                    <Button onClick={() => setDataEditorOpen((open) => !open)}>
+                      Data Editor
+                    </Button>
+                    <Button onClick={handleSave}>Save</Button>
+                    <Button onClick={() => setEditMode(false)}>Close</Button>
                   </>
+                ) : (
+                  <Button onClick={() => setEditMode(true)}>Edit</Button>
                 )}
-              </Box>
+              </Toolbar>
+              {editedObject ? (
+                <ComponentEditor
+                  id={editedObject}
+                  onClose={() => setEditedObject(null)}
+                />
+              ) : (
+                <PanelGroup direction="vertical">
+                  <Panel>{dashboardElm}</Panel>
+                  {editMode && dataEditorOpen ? (
+                    <>
+                      <PanelResizeHandle />
+                      <Panel>data editor</Panel>
+                    </>
+                  ) : null}
+                </PanelGroup>
+              )}
             </Box>
           ) : (
-            dashboardContent
+            dashboardElm
           )}
         </ComponentsContext.Provider>
       </SetDashboardConfigContext.Provider>
