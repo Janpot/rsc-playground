@@ -202,6 +202,11 @@ export default function ClientDashboard({
 
   const [view, setView] = React.useState<View>({ kind: "dashboard" });
 
+  const handleStopEditing = React.useCallback(() => {
+    setView({ kind: "dashboard" });
+    setEditMode(false);
+  }, []);
+
   const handleAddComponent = (kind: string) => () => {
     setInput((prev) => {
       const id = getItemId();
@@ -379,7 +384,7 @@ export default function ClientDashboard({
                       Data Editor
                     </Button>
                     <Button onClick={handleSave}>Save</Button>
-                    <Button onClick={() => setEditMode(false)}>Close</Button>
+                    <Button onClick={handleStopEditing}>Close</Button>
                   </>
                 ) : (
                   <Button onClick={() => setEditMode(true)}>Edit</Button>
