@@ -14,6 +14,7 @@ import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { IMPORTS, ModuleContext, createModuleContext } from "./codegen";
 import { Layout as ReactGridLayout } from "react-grid-layout";
 import { Panel, PanelGroup, PanelResizeHandle } from "./resizablePanels";
+import DataEditor from "./DataEditor";
 
 const DASHBOARD_OBJECT_TOOLS_CLASS = "dashboard-object-tools";
 const DRAGGABLE_HANLDE_CLASS = "draggable-handle";
@@ -367,7 +368,9 @@ export default function ClientDashboard({
                   {editMode && dataEditorOpen ? (
                     <>
                       <PanelResizeHandle />
-                      <Panel>data editor</Panel>
+                      <Panel>
+                        <DataEditor value={input} onChange={setInput} />
+                      </Panel>
                     </>
                   ) : null}
                 </PanelGroup>
