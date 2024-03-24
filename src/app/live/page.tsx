@@ -1,6 +1,6 @@
 import * as path from "path";
 import * as url from "url";
-import { Dashboard } from "../../lib/Dashboard2";
+import { Dashboard } from "../../lib/Dashboard";
 
 export const dynamic = "force-dynamic";
 
