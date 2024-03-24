@@ -137,12 +137,27 @@ function generateDashboardCode(config: DashboardConfig, ctx: GenerateContext) {
           isDraggable={${String(ctx.editMode)}}
           isResizable={${String(ctx.editMode)}}
           ${ctx.editMode ? "onLayoutChange={__runtime.onLayoutChange}" : ""}
-
-        >
+          
+          >
           ${Array.from(Object.entries(config.objects), ([id, object], i) => {
             ctx.module.requireImport("@mui/material/Box", { default: "Box" });
             return `
-              <Box key="${id}" data-grid={${JSON.stringify(object.layout)}} sx={{ position: 'relative' }}>
+            <Box 
+            key="${id}" 
+            data-grid={${JSON.stringify(object.layout)}} 
+            sx={{
+              position: 'relative',
+              ${
+                ctx.editMode
+                  ? `
+                '.${DASHBOARD_OBJECT_TOOLS_CLASS}': { display: 'none' },
+                '&:hover .${DASHBOARD_OBJECT_TOOLS_CLASS}': { display: 'unset' },
+              `
+                  : ""
+              }
+
+                }}
+              >
                 <Object${id}  />
                 ${ctx.editMode ? `{__runtime.renderItemControls(${JSON.stringify(id)})}` : ""}
               </Box>
